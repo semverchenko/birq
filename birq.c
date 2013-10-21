@@ -23,6 +23,11 @@
 #include <getopt.h>
 #endif
 
+#include <sys/poll.h>
+#include <sys/socket.h>
+#include <linux/types.h>
+#include <linux/netlink.h>
+
 #include "log.h"
 
 #ifndef VERSION
@@ -43,6 +48,9 @@ struct options *opts_init(void);
 void opts_free(struct options *opts);
 static int opts_parse(int argc, char *argv[], struct options *opts);
 
+static int nl_init(void);
+static int nl_poll(int nl, int timeout);
+
 /* Command line options */
 struct options {
 	char *pidfile;
@@ -57,10 +65,14 @@ int main(int argc, char **argv)
 	int retval = -1;
 	struct options *opts = NULL;
 	int pidfd = -1;
+	int rescan = 0; /* sysfs rescan needed */
 
 	/* Signal vars */
 	struct sigaction sig_act, sigpipe_act;
 	sigset_t sig_set, sigpipe_set;
+
+	/* NetLink vars */
+	int nl; /* NetLink socket */
 
 	/* Parse command line options */
 	opts = opts_init();
@@ -70,6 +82,10 @@ int main(int argc, char **argv)
 	/* Initialize syslog */
 	openlog(argv[0], LOG_CONS, opts->log_facility);
 	syslog(LOG_ERR, "Start daemon.\n");
+
+	/* Init NetLink socket */
+	if ((nl = nl_init()) < 0)
+		goto err;
 
 	/* Fork the daemon */
 	if (!opts->debug) {
@@ -127,8 +143,22 @@ int main(int argc, char **argv)
 	sigpipe_act.sa_handler = SIG_IGN;
 	sigaction(SIGPIPE, &sigpipe_act, NULL);
 
+	/* Main loop */
+	while (!sigterm) {
+		int n;
+		n = nl_poll(nl, 5);
+		if (n < 0)
+			break;
+		if (n > 0) {
+			rescan = 1;
+			continue;
+		}
 
-
+		if (rescan) {
+			fprintf(stdout, "Rescanning...\n");
+			rescan = 0;
+		}
+	}
 
 	retval = 0;
 err:
@@ -146,6 +176,49 @@ err:
 	syslog(LOG_ERR, "Stop daemon.\n");
 
 	return retval;
+}
+
+static int nl_init(void)
+{
+	struct sockaddr_nl nl_addr;
+	int nl;
+
+	memset(&nl_addr, 0, sizeof(nl_addr));
+	nl_addr.nl_family = AF_NETLINK;
+	nl_addr.nl_pid = getpid();
+	nl_addr.nl_groups = -1;
+
+	if ((nl = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT)) < 0) {
+		fprintf(stderr, "Error: Can't create socket\n");
+		return -1;
+	}
+	if (bind(nl, (void *)&nl_addr, sizeof(nl_addr))) {
+		fprintf(stderr, "Error: Can't bind\n");
+		return -1;
+	}
+
+	return nl;
+}
+
+static int nl_poll(int nl, int timeout)
+{
+	struct pollfd pfd;
+	char buf[10];
+	int n;
+
+	pfd.events = POLLIN;
+	pfd.fd = nl;
+
+	if ((n = poll(&pfd, 1, (timeout * 1000))) < 0) {
+		fprintf(stderr, "Error: Can't poll\n");
+		return -1;
+	}
+	/* Some device-related event */
+	/* Read all messages. We don't need a message content. */
+	if (n > 0)
+		while (recv(nl, buf, sizeof(buf), MSG_DONTWAIT) > 0);
+
+	return n;
 }
 
 /*--------------------------------------------------------- */

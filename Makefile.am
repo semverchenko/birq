@@ -18,7 +18,10 @@ lib_LTLIBRARIES =
 lib_LIBRARIES =
 nobase_include_HEADERS =
 
-birq_SOURCES = birq.c
+birq_SOURCES = \
+	birq.c \
+	log.h \
+	log.c
 
 EXTRA_DIST = \
 	LICENCE \

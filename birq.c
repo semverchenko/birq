@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	sigaction(SIGQUIT, &sig_act, NULL);
 
 	/* Prepare data structures */
-	irqs = lub_list_new(NULL);
+	irqs = lub_list_new(irq_list_compare);
 
 	/* Main loop */
 	while (!sigterm) {

@@ -12,6 +12,13 @@
 #include "lub/list.h"
 #include "irq.h"
 
+int irq_list_compare(const void *first, const void *second)
+{
+	const irq_t *f = (const irq_t *)first;
+	const irq_t *s = (const irq_t *)second;
+	return (f->irq - s->irq);
+}
+
 static int irqs_populate_pci(lub_list_t *irqs)
 {
 	DIR *dir;

@@ -1,5 +1,5 @@
-#ifndef _log_h
-#define _log_h
+#ifndef _lub_log_h
+#define _lub_log_h
 
 #include <syslog.h>
 
@@ -7,7 +7,7 @@
 #include "config.h"
 #endif /* HAVE_CONFIG_H */
 
-int parse_log_facility(const char *str, int *facility);
+int lub_log_facility(const char *str, int *facility);
 
 #endif
 

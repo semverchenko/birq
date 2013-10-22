@@ -28,7 +28,7 @@
 #include <linux/types.h>
 #include <linux/netlink.h>
 
-#include "log.h"
+#include "lub/log.h"
 
 #ifndef VERSION
 #define VERSION 1.0.0
@@ -351,7 +351,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 			opts->debug = 1;
 			break;
 		case 'O':
-			if (parse_log_facility(optarg, &(opts->log_facility))) {
+			if (lub_log_facility(optarg, &(opts->log_facility))) {
 				fprintf(stderr, "Error: Illegal syslog facility %s.\n", optarg);
 				help(-1, argv[0]);
 				exit(-1);

@@ -19,6 +19,35 @@ int irq_list_compare(const void *first, const void *second)
 	return (f->irq - s->irq);
 }
 
+static irq_t * irq_new(int num)
+{
+	irq_t *new;
+
+	if (!(new = malloc(sizeof(*new))))
+		return NULL;
+	new->irq = num;
+	new->desc = NULL;
+	return new;
+}
+
+static void irq_free(irq_t *irq)
+{
+	if (irq->desc)
+		free(irq->desc);
+	free(irq);
+}
+
+static irq_t * irqs_add(lub_list_t *irqs, int num)
+{
+	irq_t *new;
+
+	if (!(new = irq_new(num)))
+		return NULL;
+	lub_list_add(irqs, new);
+
+	return new;
+}
+
 static int irqs_populate_pci(lub_list_t *irqs)
 {
 	DIR *dir;
@@ -49,6 +78,7 @@ static int irqs_populate_pci(lub_list_t *irqs)
 				num = strtol(ment->d_name, NULL, 10);
 				if (!num)
 					continue;
+				irqs_add(irqs, num);
 				printf("MSI: %d\n", num);
 			}
 			closedir(msi);
@@ -66,6 +96,7 @@ static int irqs_populate_pci(lub_list_t *irqs)
 		fclose(fd);
 		if (!num)
 			continue;
+		irqs_add(irqs, num);
 		printf("IRQ: %d\n", num);
 	}
 	closedir(dir);

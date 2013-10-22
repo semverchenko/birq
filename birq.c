@@ -49,6 +49,7 @@ void opts_free(struct options *opts);
 static int opts_parse(int argc, char *argv[], struct options *opts);
 
 static int nl_init(void);
+static void nl_close(int nl);
 static int nl_poll(int nl, int timeout);
 
 /* Command line options */
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
 	sigset_t sig_set, sigpipe_set;
 
 	/* NetLink vars */
-	int nl; /* NetLink socket */
+	int nl = -1; /* NetLink socket */
 
 	/* Parse command line options */
 	opts = opts_init();
@@ -147,8 +148,11 @@ int main(int argc, char **argv)
 	while (!sigterm) {
 		int n;
 		n = nl_poll(nl, 5);
-		if (n < 0)
+		if (n < 0) {
+			if (-2 == n) /* EINTR */
+				continue;
 			break;
+		}
 		if (n > 0) {
 			rescan = 1;
 			continue;
@@ -162,6 +166,9 @@ int main(int argc, char **argv)
 
 	retval = 0;
 err:
+	/* Close NetLink socket */
+	nl_close(nl);
+
 	/* Remove pidfile */
 	if (pidfd >= 0) {
 		if (unlink(opts->pidfile) < 0) {
@@ -185,19 +192,26 @@ static int nl_init(void)
 
 	memset(&nl_addr, 0, sizeof(nl_addr));
 	nl_addr.nl_family = AF_NETLINK;
-	nl_addr.nl_pid = getpid();
-	nl_addr.nl_groups = -1;
+	nl_addr.nl_pad = 0;
+	nl_addr.nl_pid = 0; /* Let kernel to assign id */
+	nl_addr.nl_groups = -1; /* Listen all multicast */
 
 	if ((nl = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT)) < 0) {
 		fprintf(stderr, "Error: Can't create socket\n");
 		return -1;
 	}
 	if (bind(nl, (void *)&nl_addr, sizeof(nl_addr))) {
-		fprintf(stderr, "Error: Can't bind\n");
+		fprintf(stderr, "Error: Can't bind NetLink\n");
 		return -1;
 	}
 
 	return nl;
+}
+
+static void nl_close(int nl)
+{
+	if (nl >= 0)
+		close(nl);
 }
 
 static int nl_poll(int nl, int timeout)
@@ -209,8 +223,10 @@ static int nl_poll(int nl, int timeout)
 	pfd.events = POLLIN;
 	pfd.fd = nl;
 
-	if ((n = poll(&pfd, 1, (timeout * 1000))) < 0) {
-		fprintf(stderr, "Error: Can't poll\n");
+	n = poll(&pfd, 1, (timeout * 1000));
+	if (n < 0) {
+		if (EINTR == errno)
+			return -2;
 		return -1;
 	}
 	/* Some device-related event */

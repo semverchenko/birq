@@ -5,6 +5,7 @@
 *.o
 *.lo
 *.la
+*.a
 *.so
 *~
 
@@ -22,6 +23,10 @@
 /config.h.in
 /aclocal.m4
 /Makefile.in
+/compile
+/depcomp
+/install-sh
+/missing
 
 /birq
 

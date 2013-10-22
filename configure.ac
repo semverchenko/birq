@@ -8,17 +8,15 @@ AC_PREREQ(2.59)
 AC_INIT([birq],
         [MAJOR_VERSION.MINOR_VERSION.MICRO_VERSION],
         [serj.kalichev at gmail dot com])
-
-AC_CONFIG_AUX_DIR(aux_scripts)
 AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
 AC_PROG_CC
-AC_PROG_LIBTOOL
+AM_PROG_CC_C_O
+AC_PROG_RANLIB
 
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE(subdir-objects)
-AM_PROG_CC_C_O
 
 # needed to handle 64-bit architecture
 AC_CHECK_SIZEOF(int)

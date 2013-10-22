@@ -1,48 +1,48 @@
 #include "lub/log.h"
 #include <syslog.h>
-#include "lub/string.h"
+#include <strings.h>
 
 int lub_log_facility(const char *str, int *facility)
 {
-	if (!lub_string_nocasecmp(str, "local0"))
+	if (!strcasecmp(str, "local0"))
 		*facility = LOG_LOCAL0;
-	else if (!lub_string_nocasecmp(str, "local1"))
+	else if (!strcasecmp(str, "local1"))
 		*facility = LOG_LOCAL1;
-	else if (!lub_string_nocasecmp(str, "local2"))
+	else if (!strcasecmp(str, "local2"))
 		*facility = LOG_LOCAL2;
-	else if (!lub_string_nocasecmp(str, "local3"))
+	else if (!strcasecmp(str, "local3"))
 		*facility = LOG_LOCAL3;
-	else if (!lub_string_nocasecmp(str, "local4"))
+	else if (!strcasecmp(str, "local4"))
 		*facility = LOG_LOCAL4;
-	else if (!lub_string_nocasecmp(str, "local5"))
+	else if (!strcasecmp(str, "local5"))
 		*facility = LOG_LOCAL5;
-	else if (!lub_string_nocasecmp(str, "local6"))
+	else if (!strcasecmp(str, "local6"))
 		*facility = LOG_LOCAL6;
-	else if (!lub_string_nocasecmp(str, "local7"))
+	else if (!strcasecmp(str, "local7"))
 		*facility = LOG_LOCAL7;
-	else if (!lub_string_nocasecmp(str, "auth"))
+	else if (!strcasecmp(str, "auth"))
 		*facility = LOG_AUTH;
-	else if (!lub_string_nocasecmp(str, "authpriv"))
+	else if (!strcasecmp(str, "authpriv"))
 		*facility = LOG_AUTHPRIV;
-	else if (!lub_string_nocasecmp(str, "cron"))
+	else if (!strcasecmp(str, "cron"))
 		*facility = LOG_CRON;
-	else if (!lub_string_nocasecmp(str, "daemon"))
+	else if (!strcasecmp(str, "daemon"))
 		*facility = LOG_DAEMON;
-	else if (!lub_string_nocasecmp(str, "ftp"))
+	else if (!strcasecmp(str, "ftp"))
 		*facility = LOG_FTP;
-	else if (!lub_string_nocasecmp(str, "kern"))
+	else if (!strcasecmp(str, "kern"))
 		*facility = LOG_KERN;
-	else if (!lub_string_nocasecmp(str, "lpr"))
+	else if (!strcasecmp(str, "lpr"))
 		*facility = LOG_LPR;
-	else if (!lub_string_nocasecmp(str, "mail"))
+	else if (!strcasecmp(str, "mail"))
 		*facility = LOG_MAIL;
-	else if (!lub_string_nocasecmp(str, "news"))
+	else if (!strcasecmp(str, "news"))
 		*facility = LOG_NEWS;
-	else if (!lub_string_nocasecmp(str, "syslog"))
+	else if (!strcasecmp(str, "syslog"))
 		*facility = LOG_SYSLOG;
-	else if (!lub_string_nocasecmp(str, "user"))
+	else if (!strcasecmp(str, "user"))
 		*facility = LOG_USER;
-	else if (!lub_string_nocasecmp(str, "uucp"))
+	else if (!strcasecmp(str, "uucp"))
 		*facility = LOG_UUCP;
 	else
 		return -1;

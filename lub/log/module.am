@@ -1,2 +1,2 @@
-liblub_la_SOURCES += lub/log/log.c
+liblub_a_SOURCES += lub/log/log.c
 

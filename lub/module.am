@@ -1,24 +1,16 @@
 ## Process this file with automake to generate Makefile.in
-noinst_LTLIBRARIES += liblub.la
-liblub_la_SOURCES =
-liblub_la_LIBADD =
+noinst_LIBRARIES = liblub.a
+liblub_a_SOURCES =
 
 nobase_include_HEADERS += \
     lub/list.h \
     lub/c_decl.h \
-    lub/string.h \
-    lub/types.h \
-    lub/ctype.h \
     lub/log.h
 
 EXTRA_DIST +=   \
     lub/list/module.am \
-    lub/string/module.am \
     lub/log/module.am \
-    lub/ctype/module.am \
     lub/README
 
 include $(top_srcdir)/lub/list/module.am
-include $(top_srcdir)/lub/string/module.am
 include $(top_srcdir)/lub/log/module.am
-include $(top_srcdir)/lub/ctype/module.am

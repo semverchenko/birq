@@ -43,7 +43,6 @@ static volatile int sigterm = 0;
 static void sighandler(int signo);
 
 static void help(int status, const char *argv0);
-int daemonize(int nochdir, int noclose);
 struct options *opts_init(void);
 void opts_free(struct options *opts);
 static int opts_parse(int argc, char *argv[], struct options *opts);
@@ -55,7 +54,6 @@ static int nl_poll(int nl, int timeout);
 /* Command line options */
 struct options {
 	char *pidfile;
-	char *chroot;
 	int debug; /* Don't daemonize in debug mode */
 	int log_facility;
 };
@@ -69,8 +67,8 @@ int main(int argc, char **argv)
 	int rescan = 0; /* sysfs rescan needed */
 
 	/* Signal vars */
-	struct sigaction sig_act, sigpipe_act;
-	sigset_t sig_set, sigpipe_set;
+	struct sigaction sig_act;
+	sigset_t sig_set;
 
 	/* NetLink vars */
 	int nl = -1; /* NetLink socket */
@@ -91,7 +89,7 @@ int main(int argc, char **argv)
 	/* Fork the daemon */
 	if (!opts->debug) {
 		/* Daemonize */
-		if (daemonize(0, 0) < 0) {
+		if (daemon(0, 0) < 0) {
 			syslog(LOG_ERR, "Can't daemonize\n");
 			goto err;
 		}
@@ -112,17 +110,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-#ifdef HAVE_CHROOT
-	/* Chroot */
-	if (opts->chroot) {
-		if (chroot(opts->chroot) < 0) {
-			syslog(LOG_ERR, "Can't chroot to %s: %s",
-				opts->chroot, strerror(errno));
-			goto err;
-		}
-	}
-#endif
-
 	/* Set signal handler */
 	sigemptyset(&sig_set);
 	sigaddset(&sig_set, SIGTERM);
@@ -135,14 +122,6 @@ int main(int argc, char **argv)
 	sigaction(SIGTERM, &sig_act, NULL);
 	sigaction(SIGINT, &sig_act, NULL);
 	sigaction(SIGQUIT, &sig_act, NULL);
-
-	/* Ignore SIGPIPE */
-	sigemptyset(&sigpipe_set);
-	sigaddset(&sigpipe_set, SIGPIPE);
-	sigpipe_act.sa_flags = 0;
-	sigpipe_act.sa_mask = sigpipe_set;
-	sigpipe_act.sa_handler = SIG_IGN;
-	sigaction(SIGPIPE, &sigpipe_act, NULL);
 
 	/* Main loop */
 	while (!sigterm) {
@@ -247,38 +226,6 @@ static void sighandler(int signo)
 }
 
 /*--------------------------------------------------------- */
-/* Implement own simple daemon() to don't use Non-POSIX */
-int daemonize(int nochdir, int noclose)
-{
-	int fd;
-	int pid;
-
-	pid = fork();
-	if (-1 == pid)
-		return -1;
-	if (pid > 0)
-		_exit(0); /* Exit parent */
-	if (setsid() == -1)
-		return -1;
-	if (!nochdir) {
-		if (chdir("/"))
-			return -1;
-	}
-	if (!noclose) {
-		fd = open("/dev/null", O_RDWR, 0);
-		if (fd < 0)
-			return -1;
-		dup2(fd, STDIN_FILENO);
-		dup2(fd, STDOUT_FILENO);
-		dup2(fd, STDERR_FILENO);
-		if (fd > 2)
-			close(fd);
-	}
-
-	return 0;
-}
-
-/*--------------------------------------------------------- */
 /* Initialize option structure by defaults */
 struct options *opts_init(void)
 {
@@ -288,7 +235,6 @@ struct options *opts_init(void)
 	assert(opts);
 	opts->debug = 0; /* daemonize by default */
 	opts->pidfile = strdup(BIRQ_PIDFILE);
-	opts->chroot = NULL;
 	opts->log_facility = LOG_DAEMON;
 
 	return opts;
@@ -300,8 +246,6 @@ void opts_free(struct options *opts)
 {
 	if (opts->pidfile)
 		free(opts->pidfile);
-	if (opts->chroot)
-		free(opts->chroot);
 	free(opts);
 }
 
@@ -309,14 +253,13 @@ void opts_free(struct options *opts)
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hvp:dr:O:";
+	static const char *shortopts = "hvp:dO:";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
 		{"help",	0, NULL, 'h'},
 		{"version",	0, NULL, 'v'},
 		{"pid",		1, NULL, 'p'},
 		{"debug",	0, NULL, 'd'},
-		{"chroot",	1, NULL, 'r'},
 		{"facility",	1, NULL, 'O'},
 		{NULL,		0, NULL, 0}
 	};
@@ -336,16 +279,6 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 			if (opts->pidfile)
 				free(opts->pidfile);
 			opts->pidfile = strdup(optarg);
-			break;
-		case 'r':
-#ifdef HAVE_CHROOT
-			if (opts->chroot)
-				free(opts->chroot);
-			opts->chroot = strdup(optarg);
-#else
-			fprintf(stderr, "Error: The --chroot option is not supported.\n");
-			return -1;
-#endif
 			break;
 		case 'd':
 			opts->debug = 1;
@@ -403,7 +336,6 @@ static void help(int status, const char *argv0)
 		printf("\t-h, --help\tPrint this help.\n");
 		printf("\t-d, --debug\tDebug mode. Don't daemonize.\n");
 		printf("\t-p <path>, --pid=<path>\tFile to save daemon's PID to.\n");
-		printf("\t-r <path>, --chroot=<path>\tDirectory to chroot.\n");
 		printf("\t-O, --facility\tSyslog facility. Default is DAEMON.\n");
 	}
 }

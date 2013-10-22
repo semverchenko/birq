@@ -45,11 +45,5 @@ AC_CHECK_HEADERS(getopt.h, [],
 AC_CHECK_HEADERS(locale.h, [],
     AC_MSG_WARN([locale.h not found: the locales is not supported]))
 
-################################
-# Check for chroot
-################################
-AC_CHECK_FUNCS(chroot, [],
-    AC_MSG_WARN([chroot() not found: the choot is not supported]))
-
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT

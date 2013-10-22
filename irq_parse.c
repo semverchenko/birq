@@ -37,7 +37,7 @@ static void irq_free(irq_t *irq)
 	free(irq);
 }
 
-static irq_t * irqs_add(lub_list_t *irqs, int num)
+static irq_t * irq_list_add(lub_list_t *irqs, int num)
 {
 	irq_t *new;
 
@@ -48,7 +48,7 @@ static irq_t * irqs_add(lub_list_t *irqs, int num)
 	return new;
 }
 
-static int irqs_populate_pci(lub_list_t *irqs)
+static int irq_list_populate_pci(lub_list_t *irqs)
 {
 	DIR *dir;
 	DIR *msi;
@@ -78,7 +78,7 @@ static int irqs_populate_pci(lub_list_t *irqs)
 				num = strtol(ment->d_name, NULL, 10);
 				if (!num)
 					continue;
-				irqs_add(irqs, num);
+				irq_list_add(irqs, num);
 				printf("MSI: %d\n", num);
 			}
 			closedir(msi);
@@ -96,7 +96,7 @@ static int irqs_populate_pci(lub_list_t *irqs)
 		fclose(fd);
 		if (!num)
 			continue;
-		irqs_add(irqs, num);
+		irq_list_add(irqs, num);
 		printf("IRQ: %d\n", num);
 	}
 	closedir(dir);
@@ -104,10 +104,10 @@ static int irqs_populate_pci(lub_list_t *irqs)
 	return 0;
 }
 
-int irqs_populate(lub_list_t *irqs)
+int irq_list_populate(lub_list_t *irqs)
 {
-	irqs_populate_pci(irqs);
-//	irqs_populate_proc(irqs);
+	irq_list_populate_pci(irqs);
+//	irq_list_populate_proc(irqs);
 
 	return 0;
 }

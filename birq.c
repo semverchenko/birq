@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 		if (rescan) {
 			fprintf(stdout, "Scanning hardware...\n");
 			rescan = 0;
-			irqs_populate(irqs);
+			irq_list_populate(irqs);
 		}
 
 		/* Timeout and poll for new devices */

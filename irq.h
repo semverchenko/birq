@@ -13,6 +13,6 @@ typedef struct irq_s irq_t;
 int irq_list_compare(const void *first, const void *second);
 
 /* IRQ list functions */
-int irqs_populate(lub_list_t *irqs);
+int irq_list_populate(lub_list_t *irqs);
 
 #endif

@@ -18,6 +18,7 @@ static int irqs_populate_pci(lub_list_t *irqs)
 	DIR *msi;
 	struct dirent *dent;
 	struct dirent *ment;
+	FILE *fd;
 	char path[PATH_MAX];
 	int num;
 
@@ -41,7 +42,7 @@ static int irqs_populate_pci(lub_list_t *irqs)
 				num = strtol(ment->d_name, NULL, 10);
 				if (!num)
 					continue;
-				printf("%d\n", num);
+				printf("MSI: %d\n", num);
 			}
 			closedir(msi);
 			continue;
@@ -49,6 +50,16 @@ static int irqs_populate_pci(lub_list_t *irqs)
 
 		/* Try to get IRQ number from irq file */
 		sprintf(path, "%s/%s/irq", SYSFS_PCI_PATH, dent->d_name);
+		if (!(fd = fopen(path, "r")))
+			continue;
+		if (fscanf(fd, "%d", &num) < 0) {
+			fclose(fd);
+			continue;
+		}
+		fclose(fd);
+		if (!num)
+			continue;
+		printf("IRQ: %d\n", num);
 	}
 	closedir(dir);
 

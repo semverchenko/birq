@@ -14,11 +14,13 @@ sbin_PROGRAMS = birq
 lib_LIBRARIES =
 
 noinst_HEADERS = \
+	irq.h \
 	nl.h
 
 birq_SOURCES = \
 	birq.c \
-	nl.c
+	nl.c \
+	irq_parse.c
 
 birq_LDADD = liblub.a
 birq_DEPENDENCIES = liblub.a

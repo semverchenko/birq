@@ -29,15 +29,18 @@
 #include <linux/netlink.h>
 
 #include "lub/log.h"
+#include "lub/list.h"
+#include "irq.h"
 #include "nl.h"
+
+#define BIRQ_PIDFILE "/var/run/birq.pid"
+#define BIRQ_INTERVAL 5 /* in seconds */
 
 #ifndef VERSION
 #define VERSION 1.0.0
 #endif
 #define QUOTE(t) #t
 #define version(v) printf("%s\n", v)
-
-#define BIRQ_PIDFILE "/var/run/birq.pid"
 
 /* Global signal vars */
 static volatile int sigterm = 0;
@@ -61,7 +64,7 @@ int main(int argc, char **argv)
 	int retval = -1;
 	struct options *opts = NULL;
 	int pidfd = -1;
-	int rescan = 0; /* sysfs rescan needed */
+	int rescan = 1; /* sysfs rescan needed */
 
 	/* Signal vars */
 	struct sigaction sig_act;
@@ -69,6 +72,9 @@ int main(int argc, char **argv)
 
 	/* NetLink vars */
 	int nl = -1; /* NetLink socket */
+
+	/* IRQ list. It contain all found irqs. */
+	lub_list_t *irqs;
 
 	/* Parse command line options */
 	opts = opts_init();
@@ -120,25 +126,38 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &sig_act, NULL);
 	sigaction(SIGQUIT, &sig_act, NULL);
 
+	/* Prepare data structures */
+	irqs = lub_list_new(NULL);
+
 	/* Main loop */
 	while (!sigterm) {
 		int n;
-		n = nl_poll(nl, 5);
-		if (n < 0) {
-			if (-2 == n) /* EINTR */
-				continue;
-			break;
-		}
-		if (n > 0) {
-			rescan = 1;
-			continue;
-		}
 
 		if (rescan) {
-			fprintf(stdout, "Rescanning...\n");
+			fprintf(stdout, "Scanning hardware...\n");
 			rescan = 0;
+			irqs_populate(irqs);
+		}
+
+		/* Timeout and poll for new devices */
+		while ((n = nl_poll(nl, BIRQ_INTERVAL)) != 0) {
+			if (-1 == n) {
+				fprintf(stderr,
+					"Error: Broken NetLink socket.\n");
+				goto end;
+			}
+			if (-2 == n) /* EINTR */
+				break;
+			if (n > 0) {
+				rescan = 1;
+				continue;
+			}
 		}
 	}
+
+end:
+	/* Free data structures */
+	lub_list_free(irqs);
 
 	retval = 0;
 err:

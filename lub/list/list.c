@@ -165,8 +165,33 @@ void lub_list_del(lub_list_t *this, lub_list_node_t *node)
 		this->tail = node->prev;
 }
 
+/*--------------------------------------------------------- */
 inline void lub_list_node_copy(lub_list_node_t *dst, lub_list_node_t *src)
 {
 	memcpy(dst, src, sizeof(lub_list_node_t));
 }
+
+/*--------------------------------------------------------- */
+lub_list_node_t *lub_list_search(lub_list_t *this, void *data)
+{
+	lub_list_node_t *iter;
+
+	/* Empty list */
+	if (!this->head)
+		return NULL;
+	/* Not sorted list. Can't search. */
+	if (!this->compareFn)
+		return NULL;
+
+	/* Sorted list */
+	iter = this->head;
+	while (iter) {
+		if (!this->compareFn(data, iter->data))
+			return iter;
+		iter = iter->next;
+	}
+
+	return NULL;
+}
+
 /*--------------------------------------------------------- */

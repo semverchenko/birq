@@ -39,13 +39,31 @@ static void irq_free(irq_t *irq)
 
 static irq_t * irq_list_add(lub_list_t *irqs, int num)
 {
+	lub_list_node_t *node;
 	irq_t *new;
+	irq_t search;
 
+	search.irq = num;
+	node = lub_list_search(irqs, &search);
+	if (node) /* IRQ already exists. May be renew some fields later */
+		return (irq_t *)lub_list_node__get_data(node);
 	if (!(new = irq_new(num)))
 		return NULL;
 	lub_list_add(irqs, new);
 
 	return new;
+}
+
+static int irq_list_show(lub_list_t *irqs)
+{
+	lub_list_node_t *iter;
+	for (iter = lub_list_iterator_init(irqs); iter;
+		iter = lub_list_iterator_next(iter)) {
+		irq_t *irq;
+		irq = (irq_t *)lub_list_node__get_data(iter);
+		printf("IRQ %3d %s\n", irq->irq, irq->desc ? irq->desc : "");
+	}
+	return 0;
 }
 
 static int irq_list_populate_pci(lub_list_t *irqs)
@@ -68,6 +86,18 @@ static int irq_list_populate_pci(lub_list_t *irqs)
 			!strcmp(dent->d_name, ".."))
 			continue;
 
+		/* Get enable flag */
+		sprintf(path, "%s/%s/enable", SYSFS_PCI_PATH, dent->d_name);
+		if ((fd = fopen(path, "r"))) {
+			if (fscanf(fd, "%d", &num) > 0) {
+				if (0 == num) {
+					fclose(fd);
+					continue;
+				}
+			}
+			fclose(fd);
+		}
+
 		/* Search for MSI IRQs. Since linux-3.2 */
 		sprintf(path, "%s/%s/msi_irqs", SYSFS_PCI_PATH, dent->d_name);
 		if ((msi = opendir(path))) {
@@ -79,7 +109,7 @@ static int irq_list_populate_pci(lub_list_t *irqs)
 				if (!num)
 					continue;
 				irq_list_add(irqs, num);
-				printf("MSI: %d\n", num);
+				printf("MSI: %3d %s\n", num, dent->d_name);
 			}
 			closedir(msi);
 			continue;
@@ -97,9 +127,11 @@ static int irq_list_populate_pci(lub_list_t *irqs)
 		if (!num)
 			continue;
 		irq_list_add(irqs, num);
-		printf("IRQ: %d\n", num);
+		printf("IRQ: %3d %s\n", num, dent->d_name);
 	}
 	closedir(dir);
+
+	irq_list_show(irqs);
 
 	return 0;
 }

@@ -2,7 +2,7 @@
 noinst_LIBRARIES = liblub.a
 liblub_a_SOURCES =
 
-nobase_include_HEADERS += \
+noinst_HEADERS += \
     lub/list.h \
     lub/c_decl.h \
     lub/log.h

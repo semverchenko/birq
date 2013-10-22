@@ -29,6 +29,7 @@
 #include <linux/netlink.h>
 
 #include "lub/log.h"
+#include "nl.h"
 
 #ifndef VERSION
 #define VERSION 1.0.0
@@ -43,13 +44,9 @@ static volatile int sigterm = 0;
 static void sighandler(int signo);
 
 static void help(int status, const char *argv0);
-struct options *opts_init(void);
-void opts_free(struct options *opts);
+static struct options *opts_init(void);
+static void opts_free(struct options *opts);
 static int opts_parse(int argc, char *argv[], struct options *opts);
-
-static int nl_init(void);
-static void nl_close(int nl);
-static int nl_poll(int nl, int timeout);
 
 /* Command line options */
 struct options {
@@ -164,58 +161,6 @@ err:
 	return retval;
 }
 
-static int nl_init(void)
-{
-	struct sockaddr_nl nl_addr;
-	int nl;
-
-	memset(&nl_addr, 0, sizeof(nl_addr));
-	nl_addr.nl_family = AF_NETLINK;
-	nl_addr.nl_pad = 0;
-	nl_addr.nl_pid = 0; /* Let kernel to assign id */
-	nl_addr.nl_groups = -1; /* Listen all multicast */
-
-	if ((nl = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT)) < 0) {
-		fprintf(stderr, "Error: Can't create socket\n");
-		return -1;
-	}
-	if (bind(nl, (void *)&nl_addr, sizeof(nl_addr))) {
-		fprintf(stderr, "Error: Can't bind NetLink\n");
-		return -1;
-	}
-
-	return nl;
-}
-
-static void nl_close(int nl)
-{
-	if (nl >= 0)
-		close(nl);
-}
-
-static int nl_poll(int nl, int timeout)
-{
-	struct pollfd pfd;
-	char buf[10];
-	int n;
-
-	pfd.events = POLLIN;
-	pfd.fd = nl;
-
-	n = poll(&pfd, 1, (timeout * 1000));
-	if (n < 0) {
-		if (EINTR == errno)
-			return -2;
-		return -1;
-	}
-	/* Some device-related event */
-	/* Read all messages. We don't need a message content. */
-	if (n > 0)
-		while (recv(nl, buf, sizeof(buf), MSG_DONTWAIT) > 0);
-
-	return n;
-}
-
 /*--------------------------------------------------------- */
 /*
  * Signal handler for temination signals (like SIGTERM, SIGINT, ...)
@@ -227,7 +172,7 @@ static void sighandler(int signo)
 
 /*--------------------------------------------------------- */
 /* Initialize option structure by defaults */
-struct options *opts_init(void)
+static struct options *opts_init(void)
 {
 	struct options *opts = NULL;
 
@@ -242,7 +187,7 @@ struct options *opts_init(void)
 
 /*--------------------------------------------------------- */
 /* Free option structure */
-void opts_free(struct options *opts)
+static void opts_free(struct options *opts)
 {
 	if (opts->pidfile)
 		free(opts->pidfile);

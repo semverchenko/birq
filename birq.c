@@ -157,7 +157,7 @@ int main(int argc, char **argv)
 
 end:
 	/* Free data structures */
-	lub_list_free(irqs);
+	irq_list_free(irqs);
 
 	retval = 0;
 err:

@@ -54,6 +54,20 @@ static irq_t * irq_list_add(lub_list_t *irqs, int num)
 	return new;
 }
 
+int irq_list_free(lub_list_t *irqs)
+{
+	lub_list_node_t *iter;
+	while (iter = lub_list__get_head(irqs)) {
+		irq_t *irq;
+		irq = (irq_t *)lub_list_node__get_data(iter);
+		irq_free(irq);
+		lub_list_del(irqs, iter);
+		lub_list_node_free(iter);
+	}
+	lub_list_free(irqs);
+	return 0;
+}
+
 static int irq_list_show(lub_list_t *irqs)
 {
 	lub_list_node_t *iter;

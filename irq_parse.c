@@ -8,9 +8,12 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <limits.h>
+#include <ctype.h>
 
 #include "lub/list.h"
 #include "irq.h"
+
+#define STR(str) ( str ? str : "" )
 
 int irq_list_compare(const void *first, const void *second)
 {
@@ -26,18 +29,32 @@ static irq_t * irq_new(int num)
 	if (!(new = malloc(sizeof(*new))))
 		return NULL;
 	new->irq = num;
+	new->type = NULL;
 	new->desc = NULL;
+	new->refresh = 1;
 	return new;
 }
 
 static void irq_free(irq_t *irq)
 {
-	if (irq->desc)
-		free(irq->desc);
+	free(irq->type);
+	free(irq->desc);
 	free(irq);
 }
 
-static irq_t * irq_list_add(lub_list_t *irqs, int num)
+static irq_t * irq_list_search(lub_list_t *irqs, unsigned int num)
+{
+	lub_list_node_t *node;
+	irq_t search;
+
+	search.irq = num;
+	node = lub_list_search(irqs, &search);
+	if (!node)
+		return NULL;
+	return (irq_t *)lub_list_node__get_data(node);
+}
+
+static irq_t * irq_list_add(lub_list_t *irqs, unsigned int num)
 {
 	lub_list_node_t *node;
 	irq_t *new;
@@ -57,7 +74,7 @@ static irq_t * irq_list_add(lub_list_t *irqs, int num)
 int irq_list_free(lub_list_t *irqs)
 {
 	lub_list_node_t *iter;
-	while (iter = lub_list__get_head(irqs)) {
+	while ((iter = lub_list__get_head(irqs))) {
 		irq_t *irq;
 		irq = (irq_t *)lub_list_node__get_data(iter);
 		irq_free(irq);
@@ -68,6 +85,13 @@ int irq_list_free(lub_list_t *irqs)
 	return 0;
 }
 
+/* Show IRQ information */
+static void irq_show(irq_t *irq)
+{
+	printf("IRQ %3d [%s] %s\n", irq->irq, STR(irq->type), STR(irq->desc));
+}
+
+/* Show IRQ list */
 static int irq_list_show(lub_list_t *irqs)
 {
 	lub_list_node_t *iter;
@@ -75,12 +99,39 @@ static int irq_list_show(lub_list_t *irqs)
 		iter = lub_list_iterator_next(iter)) {
 		irq_t *irq;
 		irq = (irq_t *)lub_list_node__get_data(iter);
-		printf("IRQ %3d %s\n", irq->irq, irq->desc ? irq->desc : "");
+		irq_show(irq);
 	}
 	return 0;
 }
 
-static int irq_list_populate_pci(lub_list_t *irqs)
+static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
+	unsigned int num)
+{
+	char path[PATH_MAX];
+	FILE *fd;
+	char *str = NULL;
+	size_t sz;
+	irq_t *irq;
+
+	irq = irq_list_search(irqs, num);
+	if (!irq)
+		return -1;
+
+	sprintf(path, "%s/%s/local_cpus", SYSFS_PCI_PATH, sysfs_path);
+	if (!(fd = fopen(path, "r")))
+		return -1;
+	if (getline(&str, &sz, fd) < 0) {
+		fclose(fd);
+		return -1;
+	}
+	fclose(fd);
+/*	printf("%d %s %s\n", num, str, sysfs_path);
+*/	free(str);
+
+	return 0;
+}
+
+static int scan_sysfs(lub_list_t *irqs)
 {
 	DIR *dir;
 	DIR *msi;
@@ -100,18 +151,6 @@ static int irq_list_populate_pci(lub_list_t *irqs)
 			!strcmp(dent->d_name, ".."))
 			continue;
 
-		/* Get enable flag */
-		sprintf(path, "%s/%s/enable", SYSFS_PCI_PATH, dent->d_name);
-		if ((fd = fopen(path, "r"))) {
-			if (fscanf(fd, "%d", &num) > 0) {
-				if (0 == num) {
-					fclose(fd);
-					continue;
-				}
-			}
-			fclose(fd);
-		}
-
 		/* Search for MSI IRQs. Since linux-3.2 */
 		sprintf(path, "%s/%s/msi_irqs", SYSFS_PCI_PATH, dent->d_name);
 		if ((msi = opendir(path))) {
@@ -122,8 +161,7 @@ static int irq_list_populate_pci(lub_list_t *irqs)
 				num = strtol(ment->d_name, NULL, 10);
 				if (!num)
 					continue;
-				irq_list_add(irqs, num);
-				printf("MSI: %3d %s\n", num, dent->d_name);
+				parse_local_cpus(irqs, dent->d_name, num);
 			}
 			closedir(msi);
 			continue;
@@ -140,21 +178,87 @@ static int irq_list_populate_pci(lub_list_t *irqs)
 		fclose(fd);
 		if (!num)
 			continue;
-		irq_list_add(irqs, num);
-		printf("IRQ: %3d %s\n", num, dent->d_name);
+		parse_local_cpus(irqs, dent->d_name, num);
 	}
 	closedir(dir);
 
-	irq_list_show(irqs);
-
 	return 0;
 }
 
+/* Parse /proc/interrupts to get actual IRQ list */
 int irq_list_populate(lub_list_t *irqs)
 {
-	irq_list_populate_pci(irqs);
-//	irq_list_populate_proc(irqs);
+	FILE *fd;
+	unsigned int num;
+	char *str = NULL;
+	size_t sz;
+	irq_t *irq;
+	lub_list_node_t *iter;
+
+	if (!(fd = fopen(PROC_INTERRUPTS, "r")))
+		return -1;
+	while(getline(&str, &sz, fd) >= 0) {
+		char *endptr, *tok;
+		int new = 0;
+		num = strtoul(str, &endptr, 10);
+		if (endptr == str)
+			continue;
+		
+		if (!(irq = irq_list_search(irqs, num))) {
+			new = 1;
+			irq = irq_list_add(irqs, num);
+		}
+
+		/* Find IRQ type - first non-digital and non-space */
+		while (*endptr && !isalpha(*endptr))
+			endptr++;
+		tok = endptr; /* It will be IRQ type */
+		while (*endptr && !isblank(*endptr))
+			endptr++;
+		free(irq->type);
+		irq->type = strndup(tok, endptr - tok);
+
+		/* Find IRQ devices list */
+		while (*endptr && !isalpha(*endptr))
+			endptr++;
+		tok = endptr; /* It will be device list */
+		while (*endptr && !iscntrl(*endptr))
+			endptr++;
+		free(irq->desc);
+		irq->desc = strndup(tok, endptr - tok);
+
+		/* Set refresh flag because IRQ was found */
+		irq->refresh = 1;
+
+		if (new) {
+			printf("Add new ");
+			irq_show(irq);
+		}
+	}
+	free(str);
+	fclose(fd);
+
+	/* Remove disapeared IRQs */
+	iter = lub_list_iterator_init(irqs);
+	while(iter) {
+		irq_t *irq;
+		lub_list_node_t *old_iter;
+		irq = (irq_t *)lub_list_node__get_data(iter);
+		old_iter = iter;
+		iter = lub_list_iterator_next(iter);
+		if (!irq->refresh) {
+			lub_list_del(irqs, old_iter);
+			irq_free(irq);
+			printf("Remove ");
+			irq_show(irq);
+		} else {
+			/* Drop refresh flag for next iteration */
+			irq->refresh = 0;
+		}
+	}
+
+	/* Add IRQ info from sysfs */
+	scan_sysfs(irqs);
 
 	return 0;
 }
-

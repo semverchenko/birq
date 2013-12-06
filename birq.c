@@ -42,9 +42,12 @@
 #define QUOTE(t) #t
 #define version(v) printf("%s\n", v)
 
-/* Global signal vars */
-static volatile int sigterm = 0;
+static volatile int sigterm = 0; /* Exit if 1 */
+static volatile int rescan = 1; /* IRQ rescan is needed */
+
+/* Signal handlers */
 static void sighandler(int signo);
+static void rescan_sighandler(int signo);
 
 static void help(int status, const char *argv0);
 static struct options *opts_init(void);
@@ -64,7 +67,6 @@ int main(int argc, char **argv)
 	int retval = -1;
 	struct options *opts = NULL;
 	int pidfd = -1;
-	int rescan = 1; /* sysfs rescan needed */
 
 	/* Signal vars */
 	struct sigaction sig_act;
@@ -126,6 +128,15 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &sig_act, NULL);
 	sigaction(SIGQUIT, &sig_act, NULL);
 
+	/* Set rescan signal handler */
+	sigemptyset(&sig_set);
+	sigaddset(&sig_set, SIGUSR1);
+
+	sig_act.sa_flags = 0;
+	sig_act.sa_mask = sig_set;
+	sig_act.sa_handler = &rescan_sighandler;
+	sigaction(SIGUSR1, &sig_act, NULL);
+
 	/* Prepare data structures */
 	irqs = lub_list_new(irq_list_compare);
 
@@ -153,6 +164,8 @@ int main(int argc, char **argv)
 				continue;
 			}
 		}
+
+		printf("Some balancing...\n");
 	}
 
 end:
@@ -187,6 +200,15 @@ err:
 static void sighandler(int signo)
 {
 	sigterm = 1;
+}
+
+/*--------------------------------------------------------- */
+/*
+ * Force IRQ rescan (SIGUSR1)
+ */
+static void rescan_sighandler(int signo)
+{
+	rescan = 1;
 }
 
 /*--------------------------------------------------------- */

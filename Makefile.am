@@ -15,7 +15,8 @@ lib_LIBRARIES =
 
 noinst_HEADERS = \
 	irq.h \
-	nl.h
+	nl.h \
+	cpumask.h
 
 birq_SOURCES = \
 	birq.c \

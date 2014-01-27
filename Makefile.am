@@ -16,12 +16,15 @@ lib_LIBRARIES =
 noinst_HEADERS = \
 	irq.h \
 	nl.h \
-	cpumask.h
+	cpumask.h \
+	bitmap.h \
+	non-atomic.h
 
 birq_SOURCES = \
 	birq.c \
 	nl.c \
-	irq_parse.c
+	irq_parse.c \
+	bitmap.c
 
 birq_LDADD = liblub.a
 birq_DEPENDENCIES = liblub.a

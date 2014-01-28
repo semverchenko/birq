@@ -99,8 +99,7 @@ int cpu_list_free(lub_list_t *cpus)
 /* Show CPU information */
 static void show_cpu_info(cpu_t *cpu)
 {
-	char buf[NR_CPUS / 4 + 1];
-
+	char buf[NR_CPUS + 1];
 	cpumask_scnprintf(buf, sizeof(buf), cpu->cpumask);
 	printf("CPU %d package %d core %d mask %s\n", cpu->id, cpu->package_id, cpu->core_id, buf);
 }

@@ -140,12 +140,14 @@ int main(int argc, char **argv)
 	sig_act.sa_handler = &rescan_sighandler;
 	sigaction(SIGUSR1, &sig_act, NULL);
 
+	/* Scan CPUs */
+	cpus = lub_list_new(cpu_list_compare);
+	scan_cpus(cpus);
+	show_cpus(cpus);
+
 	/* Prepare data structures */
 	irqs = lub_list_new(irq_list_compare);
 
-cpus = lub_list_new(cpu_list_compare);
-scan_cpus(cpus);
-show_cpus(cpus);
 
 	/* Main loop */
 	while (!sigterm) {

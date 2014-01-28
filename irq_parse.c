@@ -88,7 +88,12 @@ int irq_list_free(lub_list_t *irqs)
 /* Show IRQ information */
 static void irq_show(irq_t *irq)
 {
-	printf("IRQ %3d [%s] %s\n", irq->irq, STR(irq->type), STR(irq->desc));
+	char buf[NR_CPUS + 1];
+	if (cpus_full(irq->local_cpus))
+		snprintf(buf, sizeof(buf), "*");
+	else
+		cpumask_scnprintf(buf, sizeof(buf), irq->local_cpus);
+	printf("IRQ %3d %s [%s] %s\n", irq->irq, buf, STR(irq->type), STR(irq->desc));
 }
 
 /* Show IRQ list */
@@ -125,8 +130,9 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 		return -1;
 	}
 	fclose(fd);
-/*	printf("%d %s %s\n", num, str, sysfs_path);
-*/	free(str);
+	cpumask_parse_user(str, strlen(str), irq->local_cpus);
+//	printf("%d %s %s\n", num, str, sysfs_path);
+	free(str);
 
 	return 0;
 }
@@ -229,6 +235,9 @@ int irq_list_populate(lub_list_t *irqs)
 
 		/* Set refresh flag because IRQ was found */
 		irq->refresh = 1;
+
+		/* By default all CPUs are local for IRQ */
+		cpus_setall(irq->local_cpus);
 
 		if (new) {
 			printf("Add new ");

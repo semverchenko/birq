@@ -24,17 +24,13 @@ int cpu_list_compare(const void *first, const void *second)
 	return (f->id - s->id);
 }
 
-static cpu_t * cpu_new(unsigned int id,
-	unsigned int package_id,
-	unsigned int core_id)
+static cpu_t * cpu_new(unsigned int id)
 {
 	cpu_t *new;
 
 	if (!(new = malloc(sizeof(*new))))
 		return NULL;
 	new->id = id;
-	new->package_id = package_id;
-	new->core_id = core_id;
 	return new;
 }
 
@@ -63,7 +59,6 @@ static cpu_t * cpu_list_search_ht(lub_list_t *cpus,
 	return NULL;
 }
 
-#if 0
 static cpu_t * cpu_list_search(lub_list_t *cpus, unsigned int id)
 {
 	lub_list_node_t *node;
@@ -75,17 +70,13 @@ static cpu_t * cpu_list_search(lub_list_t *cpus, unsigned int id)
 		return NULL;
 	return (cpu_t *)lub_list_node__get_data(node);
 }
-#endif
 
 static cpu_t * cpu_list_add(lub_list_t *cpus, cpu_t *cpu)
 {
-	lub_list_node_t *node;
-	cpu_t search;
+	cpu_t *old = cpu_list_search(cpus, cpu->id);
 
-	search.id = cpu->id;
-	node = lub_list_search(cpus, &search);
-	if (node) /* CPU already exists. May be renew some fields later */
-		return (cpu_t *)lub_list_node__get_data(node);
+	if (old) /* CPU already exists. May be renew some fields later */
+		return old;
 	lub_list_add(cpus, cpu);
 
 	return cpu;
@@ -167,8 +158,7 @@ int scan_cpus(lub_list_t *cpus)
 		if (cpu_list_search_ht(cpus, package_id, core_id))
 			continue;
 
-		new = malloc(sizeof(*new));
-		new->id = id;
+		new = cpu_new(id);
 		new->package_id = package_id;
 		new->core_id = core_id;
 		cpus_clear(new->cpumask);

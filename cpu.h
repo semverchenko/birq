@@ -1,10 +1,13 @@
 #ifndef _cpu_h
 #define _cpu_h
 
+#include "cpumask.h"
+
 struct cpu_s {
 	unsigned int id; /* Logical processor ID */
 	unsigned int package_id;
 	unsigned int core_id;
+	cpumask_t cpumask;
 };
 typedef struct cpu_s cpu_t;
 

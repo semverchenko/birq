@@ -77,24 +77,18 @@ static cpu_t * cpu_list_search(lub_list_t *cpus, unsigned int id)
 }
 #endif
 
-static cpu_t * cpu_list_add(lub_list_t *cpus,
-	unsigned int id,
-	unsigned int package_id,
-	unsigned int core_id)
+static cpu_t * cpu_list_add(lub_list_t *cpus, cpu_t *cpu)
 {
 	lub_list_node_t *node;
-	cpu_t *new;
 	cpu_t search;
 
-	search.id = id;
+	search.id = cpu->id;
 	node = lub_list_search(cpus, &search);
 	if (node) /* CPU already exists. May be renew some fields later */
 		return (cpu_t *)lub_list_node__get_data(node);
-	if (!(new = cpu_new(id, package_id, core_id)))
-		return NULL;
-	lub_list_add(cpus, new);
+	lub_list_add(cpus, cpu);
 
-	return new;
+	return cpu;
 }
 
 int cpu_list_free(lub_list_t *cpus)
@@ -114,7 +108,10 @@ int cpu_list_free(lub_list_t *cpus)
 /* Show CPU information */
 static void show_cpu_info(cpu_t *cpu)
 {
-	printf("CPU %d package %d core %d\n", cpu->id, cpu->package_id, cpu->core_id);
+	char buf[NR_CPUS / 4 + 1];
+
+	cpumask_scnprintf(buf, sizeof(buf), cpu->cpumask);
+	printf("CPU %d package %d core %d mask %s\n", cpu->id, cpu->package_id, cpu->core_id, buf);
 }
 
 /* Show CPU list */
@@ -137,6 +134,7 @@ int scan_cpus(lub_list_t *cpus)
 	unsigned int id;
 	unsigned int package_id;
 	unsigned int core_id;
+	cpu_t *new;
 
 	for (id = 0; id < NR_CPUS; id++) {
 		sprintf(path, "%s/cpu%d", SYSFS_CPU_PATH, id);
@@ -169,7 +167,13 @@ int scan_cpus(lub_list_t *cpus)
 		if (cpu_list_search_ht(cpus, package_id, core_id))
 			continue;
 
-		cpu_list_add(cpus, id, package_id, core_id);
+		new = malloc(sizeof(*new));
+		new->id = id;
+		new->package_id = package_id;
+		new->core_id = core_id;
+		cpus_clear(new->cpumask);
+		cpu_set(new->id, new->cpumask);
+		cpu_list_add(cpus, new);
 	}
 
 	return 0;

@@ -18,12 +18,14 @@ noinst_HEADERS = \
 	nl.h \
 	cpumask.h \
 	bitmap.h \
-	non-atomic.h
+	non-atomic.h \
+	cpu.h
 
 birq_SOURCES = \
 	birq.c \
 	nl.c \
 	irq_parse.c \
+	cpu_parse.c \
 	bitmap.c
 
 birq_LDADD = liblub.a

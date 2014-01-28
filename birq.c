@@ -31,6 +31,7 @@
 #include "lub/log.h"
 #include "lub/list.h"
 #include "irq.h"
+#include "cpu.h"
 #include "nl.h"
 
 #define BIRQ_PIDFILE "/var/run/birq.pid"
@@ -77,6 +78,8 @@ int main(int argc, char **argv)
 
 	/* IRQ list. It contain all found irqs. */
 	lub_list_t *irqs;
+	/* CPU list. It contain all found CPUs. */
+	lub_list_t *cpus;
 
 	/* Parse command line options */
 	opts = opts_init();
@@ -140,6 +143,10 @@ int main(int argc, char **argv)
 	/* Prepare data structures */
 	irqs = lub_list_new(irq_list_compare);
 
+cpus = lub_list_new(cpu_list_compare);
+scan_cpus(cpus);
+show_cpus(cpus);
+
 	/* Main loop */
 	while (!sigterm) {
 		int n;
@@ -171,6 +178,7 @@ int main(int argc, char **argv)
 end:
 	/* Free data structures */
 	irq_list_free(irqs);
+	cpu_list_free(cpus);
 
 	retval = 0;
 err:

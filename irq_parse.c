@@ -239,10 +239,8 @@ int irq_list_populate(lub_list_t *irqs)
 		/* By default all CPUs are local for IRQ */
 		cpus_setall(irq->local_cpus);
 
-		if (new) {
-			printf("Add new ");
-			irq_show(irq);
-		}
+		if (new)
+			printf("Add IRQ %3d %s\n", irq->irq, STR(irq->desc));
 	}
 	free(str);
 	fclose(fd);
@@ -258,8 +256,7 @@ int irq_list_populate(lub_list_t *irqs)
 		if (!irq->refresh) {
 			lub_list_del(irqs, old_iter);
 			irq_free(irq);
-			printf("Remove ");
-			irq_show(irq);
+			printf("Remove IRQ %3d %s\n", irq->irq, STR(irq->desc));
 		} else {
 			/* Drop refresh flag for next iteration */
 			irq->refresh = 0;
@@ -268,6 +265,8 @@ int irq_list_populate(lub_list_t *irqs)
 
 	/* Add IRQ info from sysfs */
 	scan_sysfs(irqs);
+
+	irq_list_show(irqs);
 
 	return 0;
 }

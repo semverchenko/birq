@@ -22,5 +22,6 @@ int irq_list_compare(const void *first, const void *second);
 /* IRQ list functions */
 int irq_list_populate(lub_list_t *irqs);
 int irq_list_free(lub_list_t *irqs);
+int irq_list_show(lub_list_t *irqs);
 
 #endif

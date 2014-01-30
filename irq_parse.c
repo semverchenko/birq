@@ -97,7 +97,7 @@ static void irq_show(irq_t *irq)
 }
 
 /* Show IRQ list */
-static int irq_list_show(lub_list_t *irqs)
+int irq_list_show(lub_list_t *irqs)
 {
 	lub_list_node_t *iter;
 	for (iter = lub_list_iterator_init(irqs); iter;
@@ -265,8 +265,6 @@ int irq_list_populate(lub_list_t *irqs)
 
 	/* Add IRQ info from sysfs */
 	scan_sysfs(irqs);
-
-	irq_list_show(irqs);
 
 	return 0;
 }

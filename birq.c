@@ -142,21 +142,26 @@ int main(int argc, char **argv)
 
 	/* Scan CPUs */
 	cpus = lub_list_new(cpu_list_compare);
+	if (opts->debug)
+		fprintf(stdout, "Scanning CPUs...\n");
 	scan_cpus(cpus);
-	show_cpus(cpus);
+	if (opts->debug)
+		show_cpus(cpus);
 
 	/* Prepare data structures */
 	irqs = lub_list_new(irq_list_compare);
-
 
 	/* Main loop */
 	while (!sigterm) {
 		int n;
 
 		if (rescan) {
-			fprintf(stdout, "Scanning hardware...\n");
+			if (opts->debug)
+				fprintf(stdout, "Scanning hardware...\n");
 			rescan = 0;
 			irq_list_populate(irqs);
+			if (opts->debug)
+				irq_list_show(irqs);
 		}
 
 		/* Timeout and poll for new devices */
@@ -174,7 +179,8 @@ int main(int argc, char **argv)
 			}
 		}
 
-		printf("Some balancing...\n");
+		if (opts->debug)
+			printf("Some balancing...\n");
 	}
 
 end:

@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	sigset_t sig_set;
 
 	/* NetLink vars */
-	int nl = -1; /* NetLink socket */
+	nl_fds_t *nl_fds = NULL; /* NetLink socket */
 
 	/* IRQ list. It contain all found irqs. */
 	lub_list_t *irqs;
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 	syslog(LOG_ERR, "Start daemon.\n");
 
 	/* Init NetLink socket */
-	if ((nl = nl_init()) < 0)
+	if (!(nl_fds = nl_init()))
 		goto err;
 
 	/* Fork the daemon */
@@ -165,7 +165,8 @@ int main(int argc, char **argv)
 		}
 
 		/* Timeout and poll for new devices */
-		while ((n = nl_poll(nl, BIRQ_INTERVAL)) != 0) {
+		while ((n = nl_poll(nl_fds, BIRQ_INTERVAL)) != 0) {
+printf("POLL NETLINK: n=%d\n", n);
 			if (-1 == n) {
 				fprintf(stderr,
 					"Error: Broken NetLink socket.\n");
@@ -191,7 +192,7 @@ end:
 	retval = 0;
 err:
 	/* Close NetLink socket */
-	nl_close(nl);
+	nl_close(nl_fds);
 
 	/* Remove pidfile */
 	if (pidfd >= 0) {

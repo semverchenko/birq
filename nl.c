@@ -11,7 +11,7 @@
 
 #include "nl.h"
 
-int nl_init(void)
+nl_fds_t * nl_init(void)
 {
 	struct sockaddr_nl nl_addr;
 	int nl;
@@ -34,13 +34,21 @@ int nl_init(void)
 	return nl;
 }
 
-void nl_close(int nl)
+void nl_close(nl_fds_t *nl_fds)
 {
-	if (nl >= 0)
-		close(nl);
+	int fd;
+	int i;
+
+	if (!nl_fds)
+		return;
+
+	for (i = 0; i < NL_FDS_LEN; i++) {
+		if (nl_fds[i] >= 0)
+			close(nl_fds[i]);
+	}
 }
 
-int nl_poll(int nl, int timeout)
+int nl_poll(nl_fds_t *nl_fds, int timeout)
 {
 	struct pollfd pfd;
 	char buf[10];

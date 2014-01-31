@@ -12,10 +12,11 @@
 
 #include "statistics.h"
 #include "cpu.h"
+#include "irq.h"
 
 #define STR(str) ( str ? str : "" )
 
-void parse_proc_stat(lub_list_t *cpus)
+void parse_proc_stat(lub_list_t *cpus, lub_list_t *irqs)
 {
 	FILE *file;
 	char *line = NULL;
@@ -32,6 +33,9 @@ void parse_proc_stat(lub_list_t *cpus)
 	unsigned long long l_guest;
 	unsigned long long l_guest_nice;
 	unsigned long long load_irq, load_all;
+	char *intr_str;
+	char *saveptr;
+	unsigned int inum = 0;
 
 	file = fopen("/proc/stat", "r");
 	if (!file) {
@@ -72,6 +76,7 @@ void parse_proc_stat(lub_list_t *cpus)
 		load_irq = l_irq + l_softirq;
 
 		if (cpu->old_load_all == 0) {
+			/* When old_load_all = 0 - it's first iteration */
 			cpu->load = 0;
 		} else {
 			float d_all = (float)(load_all - cpu->old_load_all);
@@ -82,45 +87,33 @@ void parse_proc_stat(lub_list_t *cpus)
 		cpu->old_load_all = load_all;
 		cpu->old_load_irq = load_irq;
 
-printf("CPU %u %.2f\%\n", cpunr, cpu->load);
+		printf("CPU %u %.2f%%\n", cpunr, cpu->load);
+	}
 
-
-		/*
- 		 * For each cpu add the irq and softirq load and propagate that
- 		 * all the way up the device tree
- 		 */
-//		if (cycle_count) {
-//			cpu->load = (irq_load + softirq_load) - (cpu->last_load);
-			/*
-			 * the [soft]irq_load values are in jiffies, with
-			 * HZ jiffies per second.  Convert the load to nanoseconds
-			 * to get a better integer resolution of nanoseconds per
-			 * interrupt.
-			 */
-//			cpu->load *= NSEC_PER_SEC/HZ;
-//		}
-//		cpu->last_load = (irq_load + softirq_load);
+	/* Parse "intr" line. Get number of interrupts. */
+	intr_str = strtok_r(line, " ", &saveptr); /* String "intr" */
+	intr_str = strtok_r(NULL, " ", &saveptr); /* Total number of interrupts */
+	for (intr_str = strtok_r(NULL, " ", &saveptr);
+		intr_str; intr_str = strtok_r(NULL, " ", &saveptr)) {
+		unsigned long long intr = 0;
+		char *endptr;
+		irq_t *irq;
+		
+		irq = irq_list_search(irqs, inum);
+		inum++;
+		if (!irq)
+			continue;
+		intr = strtoull(intr_str, &endptr, 10);
+		if (endptr == intr_str)
+			intr = 0;
+		if (irq->old_intr == 0)
+			irq->intr = 0;
+		else
+			irq->intr = intr - irq->old_intr;
+		irq->old_intr = intr;
+		printf("IRQ %u %llu %s\n", irq->irq, irq->intr, irq->desc);
 	}
 
 	fclose(file);
 	free(line);
-//	if (cpucount != get_cpu_count()) {
-//		fprintf(stderr, "Warning: Can't collect load info for all cpus, balancing is broken\n");
-//		return;
-//	}
-
-	/*
- 	 * Reset the load values for all objects above cpus
- 	 */
-//	for_each_object(cache_domains, reset_load, NULL);
-
-	/*
- 	 * Now that we have load for each cpu attribute a fair share of the load
- 	 * to each irq on that cpu
- 	 */
-//	for_each_object(cpus, compute_irq_branch_load_share, NULL);
-//	for_each_object(cache_domains, compute_irq_branch_load_share, NULL);
-//	for_each_object(packages, compute_irq_branch_load_share, NULL);
-//	for_each_object(numa_nodes, compute_irq_branch_load_share, NULL);
-
 }

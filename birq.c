@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 
 		if (opts->debug)
 			printf("Some balancing...\n");
-		parse_proc_stat(cpus);
+		parse_proc_stat(cpus, irqs);
 	}
 
 end:

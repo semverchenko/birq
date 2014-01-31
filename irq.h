@@ -9,6 +9,8 @@ struct irq_s {
 	char *desc; /* IRQ text description - device list */
 	int refresh; /* Refresh flag. It !=0 if irq was found while populate */
 	cpumask_t local_cpus;
+	unsigned long long intr;
+	unsigned long long old_intr;
 };
 typedef struct irq_s irq_t;
 
@@ -23,5 +25,6 @@ int irq_list_compare(const void *first, const void *second);
 int irq_list_populate(lub_list_t *irqs);
 int irq_list_free(lub_list_t *irqs);
 int irq_list_show(lub_list_t *irqs);
+irq_t * irq_list_search(lub_list_t *irqs, unsigned int num);
 
 #endif

@@ -32,6 +32,8 @@ static irq_t * irq_new(int num)
 	new->type = NULL;
 	new->desc = NULL;
 	new->refresh = 1;
+	new->old_intr = 0;
+	new->intr = 0;
 	return new;
 }
 
@@ -42,7 +44,7 @@ static void irq_free(irq_t *irq)
 	free(irq);
 }
 
-static irq_t * irq_list_search(lub_list_t *irqs, unsigned int num)
+irq_t * irq_list_search(lub_list_t *irqs, unsigned int num)
 {
 	lub_list_node_t *node;
 	irq_t search;

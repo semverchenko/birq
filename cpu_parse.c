@@ -14,6 +14,7 @@
 #include "lub/list.h"
 #include "cpumask.h"
 #include "cpu.h"
+#include "irq.h"
 
 #define STR(str) ( str ? str : "" )
 
@@ -34,12 +35,14 @@ static cpu_t * cpu_new(unsigned int id)
 	new->old_load_all = 0;
 	new->old_load_irq = 0;
 	new->load = 0;
+	new->irqs = lub_list_new(irq_list_compare);
 
 	return new;
 }
 
 static void cpu_free(cpu_t *cpu)
 {
+	lub_list_free(cpu->irqs);
 	free(cpu);
 }
 

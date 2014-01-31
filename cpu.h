@@ -12,6 +12,7 @@ struct cpu_s {
 	unsigned long long old_load_all;
 	unsigned long long old_load_irq;
 	float load;
+	lub_list_t *irqs;
 };
 typedef struct cpu_s cpu_t;
 

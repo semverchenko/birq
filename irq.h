@@ -2,6 +2,7 @@
 #define _irq_h
 
 #include "cpumask.h"
+#include "cpu.h"
 
 struct irq_s {
 	unsigned int irq;
@@ -11,6 +12,7 @@ struct irq_s {
 	cpumask_t local_cpus;
 	unsigned long long intr;
 	unsigned long long old_intr;
+	cpu_t *cpu;
 };
 typedef struct irq_s irq_t;
 

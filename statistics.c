@@ -124,8 +124,9 @@ void show_statistics(lub_list_t *cpus)
 		lub_list_node_t *irq_iter;
 
 		cpu = (cpu_t *)lub_list_node__get_data(iter);
-		printf("CPU%u package %u, core %u, load %.2f%%\n",
-			cpu->id, cpu->package_id, cpu->core_id, cpu->load);
+		printf("CPU%u package %u, core %u, irqs %d, load %.2f%%\n",
+			cpu->id, cpu->package_id, cpu->core_id,
+			lub_list_len(cpu->irqs), cpu->load);
 
 		for (irq_iter = lub_list_iterator_init(cpu->irqs); irq_iter;
 		irq_iter = lub_list_iterator_next(irq_iter)) {

@@ -31,6 +31,10 @@ static cpu_t * cpu_new(unsigned int id)
 	if (!(new = malloc(sizeof(*new))))
 		return NULL;
 	new->id = id;
+	new->old_load_all = 0;
+	new->old_load_irq = 0;
+	new->load = 0;
+
 	return new;
 }
 
@@ -59,7 +63,7 @@ static cpu_t * cpu_list_search_ht(lub_list_t *cpus,
 	return NULL;
 }
 
-static cpu_t * cpu_list_search(lub_list_t *cpus, unsigned int id)
+cpu_t * cpu_list_search(lub_list_t *cpus, unsigned int id)
 {
 	lub_list_node_t *node;
 	cpu_t search;

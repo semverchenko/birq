@@ -36,7 +36,6 @@ nl_fds_t * nl_init(void)
 		fprintf(stderr, "Error: Can't bind NETLINK_KOBJECT_UEVENT.\n");
 		return NULL;
 	}
-printf("KOBJECT=%d\n", nl_fds[0]);
 
 	/* NETLINK_ROUTER for network events like interface up/down */
 	if ((nl_fds[1] = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_ROUTE)) < 0) {
@@ -47,7 +46,11 @@ printf("KOBJECT=%d\n", nl_fds[0]);
 		fprintf(stderr, "Error: Can't bind NETLINK_ROUTER\n");
 		return NULL;
 	}
-printf("ROUTE=%d\n", nl_fds[1]);
+
+	/* TODO: Parse NETWORK events to filter many unneeded events */
+	/* Temporarily disable network events */
+	close(nl_fds[1]);
+	nl_fds[1] = -1;
 
 	return nl_fds;
 }
@@ -82,6 +85,8 @@ int nl_poll(nl_fds_t *nl_fds, int timeout)
 	/* Initialize the set of active sockets. */
 	FD_ZERO(&fd_set);
 	for (i = 0; i < NL_FDS_LEN; i++) {
+		if (nl_fds[i] < 0)
+			continue;
 		FD_SET(nl_fds[i], &fd_set);
 		if (nl_fds[i] > nfds)
 			nfds = nl_fds[i];
@@ -93,7 +98,6 @@ int nl_poll(nl_fds_t *nl_fds, int timeout)
 	tv.tv_usec = 0;
 
 	n = select(nfds, &fd_set, NULL, NULL, &tv);
-printf("NETLINK: n=%d\n", n);
 	if (n < 0) {
 		if (EINTR == errno)
 			return -2;
@@ -104,9 +108,21 @@ printf("NETLINK: n=%d\n", n);
 
 	/* Service all the sockets with input pending. */
 	for (i = 0; i < NL_FDS_LEN; i++) {
+		char *evtype = NULL;
 		if (!FD_ISSET(nl_fds[i], &fd_set))
 				continue;
-printf("RECV %d %d\n", i, nl_fds[i]);
+		switch (i) {
+		case 0:
+			evtype = "kernel";
+			break;
+		case 1:
+			evtype = "network";
+			break;
+		default:
+			evtype = "unknown";
+			break;
+		}
+		printf("Receive %s event\n", evtype);
 		/* Read all messages. We don't need a message content. */
 		while (recv(nl_fds[i], buf, sizeof(buf), MSG_DONTWAIT) > 0);
 	}

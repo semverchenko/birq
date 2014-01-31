@@ -33,9 +33,10 @@
 #include "irq.h"
 #include "cpu.h"
 #include "nl.h"
+#include "statistics.h"
 
 #define BIRQ_PIDFILE "/var/run/birq.pid"
-#define BIRQ_INTERVAL 5 /* in seconds */
+#define BIRQ_INTERVAL 3 /* in seconds */
 
 #ifndef VERSION
 #define VERSION 1.0.0
@@ -166,7 +167,6 @@ int main(int argc, char **argv)
 
 		/* Timeout and poll for new devices */
 		while ((n = nl_poll(nl_fds, BIRQ_INTERVAL)) != 0) {
-printf("POLL NETLINK: n=%d\n", n);
 			if (-1 == n) {
 				fprintf(stderr,
 					"Error: Broken NetLink socket.\n");
@@ -182,6 +182,7 @@ printf("POLL NETLINK: n=%d\n", n);
 
 		if (opts->debug)
 			printf("Some balancing...\n");
+		parse_proc_stat(cpus);
 	}
 
 end:

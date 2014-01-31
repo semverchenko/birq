@@ -20,7 +20,8 @@ noinst_HEADERS = \
 	bitmap.h \
 	non-atomic.h \
 	cpu.h \
-	statistics.h
+	statistics.h \
+	balance.h
 
 birq_SOURCES = \
 	birq.c \
@@ -28,7 +29,8 @@ birq_SOURCES = \
 	irq_parse.c \
 	cpu_parse.c \
 	statistics.c \
-	bitmap.c
+	bitmap.c \
+	balance.c
 
 birq_LDADD = liblub.a
 birq_DEPENDENCIES = liblub.a

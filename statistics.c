@@ -14,8 +14,6 @@
 #include "cpu.h"
 #include "irq.h"
 
-#define STR(str) ( str ? str : "" )
-
 void parse_proc_stat(lub_list_t *cpus, lub_list_t *irqs)
 {
 	FILE *file;
@@ -119,13 +117,13 @@ void show_statistics(lub_list_t *cpus)
 {
 	lub_list_node_t *iter;
 
+	printf("--------------------------------------------------------------------------------\n");
 	for (iter = lub_list_iterator_init(cpus); iter;
 		iter = lub_list_iterator_next(iter)) {
 		cpu_t *cpu;
 		lub_list_node_t *irq_iter;
 
 		cpu = (cpu_t *)lub_list_node__get_data(iter);
-		printf("--------------------------------------------------------------------------------\n");
 		printf("CPU%u package %u, core %u, load %.2f%%\n",
 			cpu->id, cpu->package_id, cpu->core_id, cpu->load);
 
@@ -133,8 +131,7 @@ void show_statistics(lub_list_t *cpus)
 		irq_iter = lub_list_iterator_next(irq_iter)) {
 			irq_t *irq;
 			irq = (irq_t *)lub_list_node__get_data(irq_iter);
-			printf("IRQ %u %llu %s\n", irq->irq, irq->intr, irq->desc);
+			printf("    IRQ %u %llu %s\n", irq->irq, irq->intr, irq->desc);
 		}
 	}
 }
-

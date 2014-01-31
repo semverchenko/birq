@@ -34,6 +34,7 @@
 #include "cpu.h"
 #include "nl.h"
 #include "statistics.h"
+#include "balance.h"
 
 #define BIRQ_PIDFILE "/var/run/birq.pid"
 #define BIRQ_INTERVAL 3 /* in seconds */
@@ -79,6 +80,8 @@ int main(int argc, char **argv)
 
 	/* IRQ list. It contain all found irqs. */
 	lub_list_t *irqs;
+	/* IRQs to balance */
+	lub_list_t *balance_irqs;
 	/* CPU list. It contain all found CPUs. */
 	lub_list_t *cpus;
 
@@ -151,16 +154,18 @@ int main(int argc, char **argv)
 
 	/* Prepare data structures */
 	irqs = lub_list_new(irq_list_compare);
+	balance_irqs = lub_list_new(irq_list_compare);
 
 	/* Main loop */
 	while (!sigterm) {
+		lub_list_node_t *node;
 		int n;
 
 		if (rescan) {
 			if (opts->debug)
 				fprintf(stdout, "Scanning hardware...\n");
 			rescan = 0;
-			irq_list_populate(irqs);
+			irq_list_populate(irqs, balance_irqs);
 			if (opts->debug)
 				irq_list_show(irqs);
 		}
@@ -184,11 +189,18 @@ int main(int argc, char **argv)
 			printf("Some balancing...\n");
 		parse_proc_stat(cpus, irqs);
 		show_statistics(cpus);
+		balance(cpus, balance_irqs);
+		/* TODO: Apply changes here */
+		while ((node = lub_list__get_tail(balance_irqs))) {
+			lub_list_del(balance_irqs, node);
+			lub_list_node_free(node);
+		}
 	}
 
 end:
 	/* Free data structures */
 	irq_list_free(irqs);
+	lub_list_free(balance_irqs);
 	cpu_list_free(cpus);
 
 	retval = 0;

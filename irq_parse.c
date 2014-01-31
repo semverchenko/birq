@@ -195,7 +195,7 @@ static int scan_sysfs(lub_list_t *irqs)
 }
 
 /* Parse /proc/interrupts to get actual IRQ list */
-int irq_list_populate(lub_list_t *irqs)
+int irq_list_populate(lub_list_t *irqs, lub_list_t *balance_irqs)
 {
 	FILE *fd;
 	unsigned int num;
@@ -242,8 +242,10 @@ int irq_list_populate(lub_list_t *irqs)
 		/* By default all CPUs are local for IRQ */
 		cpus_setall(irq->local_cpus);
 
-		if (new)
+		if (new) {
+			lub_list_add(balance_irqs, irq);
 			printf("Add IRQ %3d %s\n", irq->irq, STR(irq->desc));
+		}
 	}
 	free(str);
 	fclose(fd);

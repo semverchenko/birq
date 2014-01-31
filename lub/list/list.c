@@ -9,7 +9,9 @@ static inline void lub_list_init(lub_list_t * this,
 	lub_list_compare_fn compareFn)
 {
 	this->head = NULL;
+	this->tail = NULL;
 	this->compareFn = compareFn;
+	this->len = 0;
 }
 
 /*--------------------------------------------------------- */
@@ -110,6 +112,8 @@ lub_list_node_t *lub_list_add(lub_list_t *this, void *data)
 	lub_list_node_t *node = lub_list_node_new(data);
 	lub_list_node_t *iter;
 
+	this->len++;
+
 	/* Empty list */
 	if (!this->head) {
 		this->head = node;
@@ -163,6 +167,8 @@ void lub_list_del(lub_list_t *this, lub_list_node_t *node)
 		node->next->prev = node->prev;
 	else
 		this->tail = node->prev;
+
+	this->len--;
 }
 
 /*--------------------------------------------------------- */
@@ -192,6 +198,12 @@ lub_list_node_t *lub_list_search(lub_list_t *this, void *data)
 	}
 
 	return NULL;
+}
+
+/*--------------------------------------------------------- */
+inline unsigned int lub_list_len(lub_list_t *this)
+{
+	return this->len;
 }
 
 /*--------------------------------------------------------- */

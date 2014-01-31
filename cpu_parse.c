@@ -25,6 +25,13 @@ int cpu_list_compare(const void *first, const void *second)
 	return (f->id - s->id);
 }
 
+int cpu_list_compare_len(const void *first, const void *second)
+{
+	const cpu_t *f = (const cpu_t *)first;
+	const cpu_t *s = (const cpu_t *)second;
+	return (lub_list_len(f->irqs) - lub_list_len(s->irqs));
+}
+
 static cpu_t * cpu_new(unsigned int id)
 {
 	cpu_t *new;
@@ -42,6 +49,12 @@ static cpu_t * cpu_new(unsigned int id)
 
 static void cpu_free(cpu_t *cpu)
 {
+	lub_list_node_t *node;
+
+	while ((node = lub_list__get_tail(cpu->irqs))) {
+		lub_list_del(cpu->irqs, node);
+		lub_list_node_free(node);
+	}
 	lub_list_free(cpu->irqs);
 	free(cpu);
 }

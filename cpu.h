@@ -20,6 +20,7 @@ typedef struct cpu_s cpu_t;
 
 /* CPU IDs compare function */
 int cpu_list_compare(const void *first, const void *second);
+int cpu_list_compare_len(const void *first, const void *second);
 
 /* CPU list functions */
 int cpu_list_populate(lub_list_t *cpus);

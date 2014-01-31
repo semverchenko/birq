@@ -109,8 +109,10 @@ int nl_poll(nl_fds_t *nl_fds, int timeout)
 	/* Service all the sockets with input pending. */
 	for (i = 0; i < NL_FDS_LEN; i++) {
 		char *evtype = NULL;
+		if (nl_fds[i] < 0)
+			continue;
 		if (!FD_ISSET(nl_fds[i], &fd_set))
-				continue;
+			continue;
 		switch (i) {
 		case 0:
 			evtype = "kernel";

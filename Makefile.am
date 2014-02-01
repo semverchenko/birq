@@ -8,7 +8,7 @@ AUTOMAKE_OPTIONS = foreign nostdinc
 ACLOCAL_AMFLAGS = -I m4
 AM_CPPFLAGS = -I. -I$(top_srcdir)
 AM_LD = $(CC)
-AM_CFLAGS = -Wall $(DEBUG_CFLAGS)
+AM_CFLAGS = -Wall -D_GNU_SOURCE $(DEBUG_CFLAGS)
 
 sbin_PROGRAMS = birq
 lib_LIBRARIES =

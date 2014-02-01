@@ -146,11 +146,7 @@ int main(int argc, char **argv)
 
 	/* Scan CPUs */
 	cpus = lub_list_new(cpu_list_compare);
-	if (opts->debug)
-		fprintf(stdout, "Scanning CPUs...\n");
 	scan_cpus(cpus);
-	if (opts->debug)
-		show_cpus(cpus);
 
 	/* Prepare data structures */
 	irqs = lub_list_new(irq_list_compare);
@@ -185,8 +181,6 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (opts->debug)
-			printf("Some balancing...\n");
 		gather_statistics(cpus, irqs);
 		show_statistics(cpus);
 		/* Choose IRQ to move to another CPU.

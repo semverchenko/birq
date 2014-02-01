@@ -9,6 +9,7 @@
 #include <dirent.h>
 #include <limits.h>
 #include <ctype.h>
+#include <time.h>
 
 #include "statistics.h"
 #include "cpu.h"
@@ -116,8 +117,14 @@ void gather_statistics(lub_list_t *cpus, lub_list_t *irqs)
 void show_statistics(lub_list_t *cpus)
 {
 	lub_list_node_t *iter;
+	char outstr[10];
+	time_t t;
+	struct tm *tmp;
 
-	printf("--------------------------------------------------------------------------------\n");
+	t = time(NULL);
+	tmp = localtime(&t);
+	strftime(outstr, sizeof(outstr), "%H:%M:%S", tmp);
+	printf("----[ %s ]----------------------------------------------------------------\n", outstr);
 	for (iter = lub_list_iterator_init(cpus); iter;
 		iter = lub_list_iterator_next(iter)) {
 		cpu_t *cpu;
@@ -132,7 +139,7 @@ void show_statistics(lub_list_t *cpus)
 		irq_iter = lub_list_iterator_next(irq_iter)) {
 			irq_t *irq;
 			irq = (irq_t *)lub_list_node__get_data(irq_iter);
-			printf("    IRQ %u %llu %s\n", irq->irq, irq->intr, irq->desc);
+			printf("    IRQ %3u, intr %llu, %s\n", irq->irq, irq->intr, irq->desc);
 		}
 	}
 }

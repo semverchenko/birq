@@ -69,6 +69,7 @@ int main(int argc, char **argv)
 	int retval = -1;
 	struct options *opts = NULL;
 	int pidfd = -1;
+	int interval = BIRQ_SHORT_INTERVAL;
 
 	/* Signal vars */
 	struct sigaction sig_act;
@@ -170,7 +171,7 @@ int main(int argc, char **argv)
 		}
 
 		/* Timeout and poll for new devices */
-		while ((n = nl_poll(nl_fds, BIRQ_INTERVAL)) != 0) {
+		while ((n = nl_poll(nl_fds, interval)) != 0) {
 			if (-1 == n) {
 				fprintf(stderr,
 					"Error: Broken NetLink socket.\n");
@@ -186,10 +187,23 @@ int main(int argc, char **argv)
 
 		if (opts->debug)
 			printf("Some balancing...\n");
-		parse_proc_stat(cpus, irqs);
+		gather_statistics(cpus, irqs);
 		show_statistics(cpus);
-		balance(cpus, balance_irqs);
+		/* Choose IRQ to move to another CPU.
+		   Don't choose IRQ if we have new IRQs to balance */
+		if (lub_list_len(balance_irqs) == 0) {
+			choose_irqs_to_move(cpus, balance_irqs,
+				opts->threshold);
+		}
+		/* Nothing to balance */
+		if (lub_list_len(balance_irqs) == 0) {
+			interval = BIRQ_LONG_INTERVAL;
+			continue;
+		}
+		interval = BIRQ_SHORT_INTERVAL;
+		balance(cpus, balance_irqs, opts->threshold);
 		apply_affinity(balance_irqs);
+		/* Free list of balanced IRQs */
 		while ((node = lub_list__get_tail(balance_irqs))) {
 			lub_list_del(balance_irqs, node);
 			lub_list_node_free(node);
@@ -316,6 +330,11 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 			if (endptr == optarg)
 				thresh = opts->threshold;
 			opts->threshold = thresh;
+			if (thresh > 100.00) {
+				fprintf(stderr, "Error: Illegal threshold value %s.\n", optarg);
+				help(-1, argv[0]);
+				exit(-1);
+			}
 			}
 			break;
 		case 'h':

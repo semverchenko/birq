@@ -14,7 +14,7 @@
 #include "cpu.h"
 #include "irq.h"
 
-void parse_proc_stat(lub_list_t *cpus, lub_list_t *irqs)
+void gather_statistics(lub_list_t *cpus, lub_list_t *irqs)
 {
 	FILE *file;
 	char *line = NULL;

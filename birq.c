@@ -78,9 +78,9 @@ int main(int argc, char **argv)
 	/* NetLink vars */
 	nl_fds_t *nl_fds = NULL; /* NetLink socket */
 
-	/* IRQ list. It contain all found irqs. */
+	/* IRQ list. It contain all found IRQs. */
 	lub_list_t *irqs;
-	/* IRQs to balance */
+	/* IRQs need to be balanced */
 	lub_list_t *balance_irqs;
 	/* CPU list. It contain all found CPUs. */
 	lub_list_t *cpus;
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 			if (opts->debug)
 				fprintf(stdout, "Scanning hardware...\n");
 			rescan = 0;
-			irq_list_populate(irqs, balance_irqs);
+			scan_irqs(irqs, balance_irqs);
 			if (opts->debug)
 				irq_list_show(irqs);
 		}
@@ -181,21 +181,25 @@ int main(int argc, char **argv)
 			}
 		}
 
+		/* Gather statistics on CPU load and number of interrupts. */
 		gather_statistics(cpus, irqs);
 		show_statistics(cpus);
 		/* Choose IRQ to move to another CPU.
-		   Don't choose IRQ if we have new IRQs to balance */
+		   Don't choose IRQ if we already have new IRQs to balance */
 		if (lub_list_len(balance_irqs) == 0) {
 			choose_irqs_to_move(cpus, balance_irqs,
 				opts->threshold);
 		}
-		/* Nothing to balance */
+		/* If nothing to balance */
 		if (lub_list_len(balance_irqs) == 0) {
 			interval = BIRQ_LONG_INTERVAL;
 			continue;
 		}
+		/* Set short interval to make balancing faster. */
 		interval = BIRQ_SHORT_INTERVAL;
+		/* Choose new CPU for IRQs need to be balanced. */
 		balance(cpus, balance_irqs, opts->threshold);
+		/* Write new values to /proc/irq/<IRQ>/smp_affinity */
 		apply_affinity(balance_irqs);
 		/* Free list of balanced IRQs */
 		while ((node = lub_list__get_tail(balance_irqs))) {
@@ -225,7 +229,6 @@ err:
 
 	/* Free command line options */
 	opts_free(opts);
-
 	syslog(LOG_ERR, "Stop daemon.\n");
 
 	return retval;
@@ -378,5 +381,6 @@ static void help(int status, const char *argv0)
 		printf("\t-d, --debug\tDebug mode. Don't daemonize.\n");
 		printf("\t-p <path>, --pid=<path>\tFile to save daemon's PID to.\n");
 		printf("\t-O, --facility\tSyslog facility. Default is DAEMON.\n");
+		printf("\t-t <float>, --threshold=<float>\tThreshold to consider CPU is overloaded, in percents.\n");
 	}
 }

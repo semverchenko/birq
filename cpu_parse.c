@@ -16,8 +16,6 @@
 #include "cpu.h"
 #include "irq.h"
 
-#define STR(str) ( str ? str : "" )
-
 int cpu_list_compare(const void *first, const void *second)
 {
 	const cpu_t *f = (const cpu_t *)first;
@@ -61,6 +59,9 @@ static void cpu_free(cpu_t *cpu)
 	free(cpu);
 }
 
+/* Search for CPU with specified package and core IDs.
+   The second CPU with the same IDs is a thread of Hyper Threading.
+   We don't want to use HT for IRQ balancing. */
 static cpu_t * cpu_list_search_ht(lub_list_t *cpus,
 	unsigned int package_id,
 	unsigned int core_id)
@@ -139,6 +140,7 @@ int show_cpus(lub_list_t *cpus)
 	return 0;
 }
 
+/* Search for CPUs */
 int scan_cpus(lub_list_t *cpus)
 {
 	FILE *fd;

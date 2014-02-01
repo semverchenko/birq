@@ -140,7 +140,7 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 	return 0;
 }
 
-static int scan_sysfs(lub_list_t *irqs)
+static int parse_sysfs(lub_list_t *irqs)
 {
 	DIR *dir;
 	DIR *msi;
@@ -195,7 +195,7 @@ static int scan_sysfs(lub_list_t *irqs)
 }
 
 /* Parse /proc/interrupts to get actual IRQ list */
-int irq_list_populate(lub_list_t *irqs, lub_list_t *balance_irqs)
+int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs)
 {
 	FILE *fd;
 	unsigned int num;
@@ -269,7 +269,7 @@ int irq_list_populate(lub_list_t *irqs, lub_list_t *balance_irqs)
 	}
 
 	/* Add IRQ info from sysfs */
-	scan_sysfs(irqs);
+	parse_sysfs(irqs);
 
 	return 0;
 }

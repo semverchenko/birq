@@ -5,14 +5,14 @@
 #include "cpu.h"
 
 struct irq_s {
-	unsigned int irq;
+	unsigned int irq; /* IRQ's ID */
 	char *type; /* IRQ type from /proc/interrupts like PCI-MSI-edge */
 	char *desc; /* IRQ text description - device list */
 	int refresh; /* Refresh flag. It !=0 if irq was found while populate */
-	cpumask_t local_cpus;
-	unsigned long long intr;
-	unsigned long long old_intr;
-	cpu_t *cpu;
+	cpumask_t local_cpus; /* Local CPUs for this IRQs */
+	unsigned long long intr; /* Current number of interrupts */
+	unsigned long long old_intr; /* Previous total number of interrupts. */
+	cpu_t *cpu; /* Current IRQ affinity. Reference to correspondent CPU */
 };
 typedef struct irq_s irq_t;
 
@@ -24,7 +24,7 @@ typedef struct irq_s irq_t;
 int irq_list_compare(const void *first, const void *second);
 
 /* IRQ list functions */
-int irq_list_populate(lub_list_t *irqs, lub_list_t *balance_irqs);
+int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs);
 int irq_list_free(lub_list_t *irqs);
 int irq_list_show(lub_list_t *irqs);
 irq_t * irq_list_search(lub_list_t *irqs, unsigned int num);

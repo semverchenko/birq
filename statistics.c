@@ -15,6 +15,8 @@
 #include "cpu.h"
 #include "irq.h"
 
+/* Gather load statistics for CPUs and number of interrupts
+   for current iteration. */
 void gather_statistics(lub_list_t *cpus, lub_list_t *irqs)
 {
 	FILE *file;
@@ -42,7 +44,8 @@ void gather_statistics(lub_list_t *cpus, lub_list_t *irqs)
 		return;
 	}
 
-	/* first line is the header we don't need; nuke it */
+	/* Get statistics for CPUs */
+	/* First line is the header. */
 	if (getline(&line, &size, file) == 0) {
 		free(line);
 		fprintf(stderr, "Warning: Can't read /proc/stat. Balancing is broken.\n");

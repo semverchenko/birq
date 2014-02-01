@@ -14,6 +14,8 @@
 #include "cpu.h"
 #include "irq.h"
 
+/* Move IRQ to specified CPU. Remove IRQ from the IRQ list
+   of old CPU. */
 static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
 {
 	if (!irq || !cpu)
@@ -33,6 +35,9 @@ static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
 	return 0;
 }
 
+/* Search for the best CPU. Best CPU is a CPU with minimal load.
+   If several CPUs have the same load then the best CPU is a CPU
+   with minimal number of assigned IRQs */
 static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t cpumask, float threshold)
 {
 	lub_list_node_t *iter;
@@ -74,6 +79,7 @@ static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t cpumask, float threshold)
 	return cpu;
 }
 
+/* Find best CPUs for IRQs need to be balanced. */
 int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
 {
 	lub_list_node_t *iter;
@@ -118,6 +124,10 @@ int apply_affinity(lub_list_t *balance_irqs)
 	return 0;
 }
 
+/* Search for the overloaded CPUs and then choose best IRQ for moving to
+   another CPU. The best IRQ is IRQ with maximum number of interrupts.
+   The IRQs with small number of interrupts have very low load or very
+   high load (in a case of NAPI). */
 int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
 {
 	lub_list_node_t *iter;

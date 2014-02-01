@@ -273,3 +273,22 @@ int irq_list_populate(lub_list_t *irqs, lub_list_t *balance_irqs)
 
 	return 0;
 }
+
+int irq_set_affinity(irq_t *irq, cpumask_t cpumask)
+{
+	char path[PATH_MAX];
+	char buf[NR_CPUS + 1];
+	FILE *fd;
+
+	if (!irq)
+		return -1;
+
+	sprintf(path, "%s/%u/smp_affinity", PROC_IRQ, irq->irq);
+	if (!(fd = fopen(path, "w")))
+		return -1;
+	cpumask_scnprintf(buf, sizeof(buf), cpumask);
+	fprintf(fd, "%s", buf);
+	fclose(fd);
+
+	return 0;
+}

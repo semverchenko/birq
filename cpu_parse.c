@@ -43,6 +43,8 @@ static cpu_t * cpu_new(unsigned int id)
 	new->old_load_irq = 0;
 	new->load = 0;
 	new->irqs = lub_list_new(irq_list_compare);
+	cpus_clear(new->cpumask);
+	cpu_set(new->id, new->cpumask);
 
 	return new;
 }
@@ -180,8 +182,6 @@ int scan_cpus(lub_list_t *cpus)
 		new = cpu_new(id);
 		new->package_id = package_id;
 		new->core_id = core_id;
-		cpus_clear(new->cpumask);
-		cpu_set(new->id, new->cpumask);
 		cpu_list_add(cpus, new);
 	}
 

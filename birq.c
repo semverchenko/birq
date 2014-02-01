@@ -190,7 +190,7 @@ int main(int argc, char **argv)
 		parse_proc_stat(cpus, irqs);
 		show_statistics(cpus);
 		balance(cpus, balance_irqs);
-		/* TODO: Apply changes here */
+		apply_affinity(balance_irqs);
 		while ((node = lub_list__get_tail(balance_irqs))) {
 			lub_list_del(balance_irqs, node);
 			lub_list_node_free(node);

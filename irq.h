@@ -28,5 +28,6 @@ int irq_list_populate(lub_list_t *irqs, lub_list_t *balance_irqs);
 int irq_list_free(lub_list_t *irqs);
 int irq_list_show(lub_list_t *irqs);
 irq_t * irq_list_search(lub_list_t *irqs, unsigned int num);
+int irq_set_affinity(irq_t *irq, cpumask_t cpumask);
 
 #endif

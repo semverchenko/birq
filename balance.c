@@ -89,3 +89,18 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs)
 	}
 	return 0;
 }
+
+int apply_affinity(lub_list_t *balance_irqs)
+{
+	lub_list_node_t *iter;
+
+	for (iter = lub_list_iterator_init(balance_irqs); iter;
+		iter = lub_list_iterator_next(iter)) {
+		irq_t *irq;
+		irq = (irq_t *)lub_list_node__get_data(iter);
+		if (!irq->cpu)
+			continue;
+		irq_set_affinity(irq, irq->cpu->cpumask);
+	}
+	return 0;
+}

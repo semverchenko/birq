@@ -72,7 +72,7 @@ void nl_close(nl_fds_t *nl_fds)
 
 int nl_poll(nl_fds_t *nl_fds, int timeout)
 {
-	fd_set fd_set;
+	fd_set set;
 	char buf[10];
 	int n;
 	int i;
@@ -83,11 +83,11 @@ int nl_poll(nl_fds_t *nl_fds, int timeout)
 		return -1;
 
 	/* Initialize the set of active sockets. */
-	FD_ZERO(&fd_set);
+	FD_ZERO(&set);
 	for (i = 0; i < NL_FDS_LEN; i++) {
 		if (nl_fds[i] < 0)
 			continue;
-		FD_SET(nl_fds[i], &fd_set);
+		FD_SET(nl_fds[i], &set);
 		if (nl_fds[i] > nfds)
 			nfds = nl_fds[i];
 	}
@@ -97,7 +97,7 @@ int nl_poll(nl_fds_t *nl_fds, int timeout)
 	tv.tv_sec = timeout;
 	tv.tv_usec = 0;
 
-	n = select(nfds, &fd_set, NULL, NULL, &tv);
+	n = select(nfds, &set, NULL, NULL, &tv);
 	if (n < 0) {
 		if (EINTR == errno)
 			return -2;
@@ -111,7 +111,7 @@ int nl_poll(nl_fds_t *nl_fds, int timeout)
 		char *evtype = NULL;
 		if (nl_fds[i] < 0)
 			continue;
-		if (!FD_ISSET(nl_fds[i], &fd_set))
+		if (!FD_ISSET(nl_fds[i], &set))
 			continue;
 		switch (i) {
 		case 0:

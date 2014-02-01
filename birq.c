@@ -60,6 +60,7 @@ struct options {
 	char *pidfile;
 	int debug; /* Don't daemonize in debug mode */
 	int log_facility;
+	float threshold;
 };
 
 /*--------------------------------------------------------- */
@@ -251,6 +252,7 @@ static struct options *opts_init(void)
 	opts->debug = 0; /* daemonize by default */
 	opts->pidfile = strdup(BIRQ_PIDFILE);
 	opts->log_facility = LOG_DAEMON;
+	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
 
 	return opts;
 }
@@ -268,7 +270,7 @@ static void opts_free(struct options *opts)
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hvp:dO:";
+	static const char *shortopts = "hvp:dO:t:";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
 		{"help",	0, NULL, 'h'},
@@ -276,6 +278,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		{"pid",		1, NULL, 'p'},
 		{"debug",	0, NULL, 'd'},
 		{"facility",	1, NULL, 'O'},
+		{"threshold",	1, NULL, 't'},
 		{NULL,		0, NULL, 0}
 	};
 #endif
@@ -303,6 +306,16 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 				fprintf(stderr, "Error: Illegal syslog facility %s.\n", optarg);
 				help(-1, argv[0]);
 				exit(-1);
+			}
+			break;
+		case 't':
+			{
+			char *endptr;
+			float thresh;
+			thresh = strtof(optarg, &endptr);
+			if (endptr == optarg)
+				thresh = opts->threshold;
+			opts->threshold = thresh;
 			}
 			break;
 		case 'h':

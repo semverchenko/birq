@@ -28,6 +28,7 @@
 #include <linux/types.h>
 #include <linux/netlink.h>
 
+#include "birq.h"
 #include "lub/log.h"
 #include "lub/list.h"
 #include "irq.h"
@@ -35,9 +36,6 @@
 #include "nl.h"
 #include "statistics.h"
 #include "balance.h"
-
-#define BIRQ_PIDFILE "/var/run/birq.pid"
-#define BIRQ_INTERVAL 3 /* in seconds */
 
 #ifndef VERSION
 #define VERSION 1.0.0

@@ -14,6 +14,7 @@ sbin_PROGRAMS = birq
 lib_LIBRARIES =
 
 noinst_HEADERS = \
+	birq.h \
 	irq.h \
 	nl.h \
 	cpumask.h \

@@ -19,6 +19,7 @@
 #include <signal.h>
 #include <syslog.h>
 #include <fcntl.h>
+#include <time.h>
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
 #endif
@@ -131,9 +132,19 @@ int main(int argc, char **argv)
 	/* Main loop */
 	while (!sigterm) {
 		lub_list_node_t *node;
+		char outstr[10];
+		time_t t;
+		struct tm *tmp;
+
+		t = time(NULL);
+		tmp = localtime(&t);
+		strftime(outstr, sizeof(outstr), "%H:%M:%S", tmp);
+		printf("----[ %s ]----------------------------------------------------------------\n", outstr);
 
 		/* Rescan PCI devices for new IRQs. */
 		scan_irqs(irqs, balance_irqs);
+		if (opts->verbose)
+			irq_list_show(irqs);
 
 		/* Gather statistics on CPU load and number of interrupts. */
 		gather_statistics(cpus, irqs);

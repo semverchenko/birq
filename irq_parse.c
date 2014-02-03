@@ -122,6 +122,7 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 	char *str = NULL;
 	size_t sz;
 	irq_t *irq;
+	cpumask_t local_cpus;
 
 	irq = irq_list_search(irqs, num);
 	if (!irq)
@@ -135,8 +136,8 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 		return -1;
 	}
 	fclose(fd);
-	cpumask_parse_user(str, strlen(str), irq->local_cpus);
-//	printf("%d %s %s\n", num, str, sysfs_path);
+	cpumask_parse_user(str, strlen(str), local_cpus);
+	cpus_and(irq->local_cpus, irq->local_cpus, local_cpus);
 	free(str);
 
 	return 0;

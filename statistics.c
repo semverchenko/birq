@@ -117,7 +117,7 @@ void gather_statistics(lub_list_t *cpus, lub_list_t *irqs)
 	free(line);
 }
 
-void show_statistics(lub_list_t *cpus)
+void show_statistics(lub_list_t *cpus, int verbose)
 {
 	lub_list_node_t *iter;
 	char outstr[10];
@@ -138,6 +138,8 @@ void show_statistics(lub_list_t *cpus)
 			cpu->id, cpu->package_id, cpu->core_id,
 			lub_list_len(cpu->irqs), cpu->load);
 
+		if (!verbose)
+			continue;
 		for (irq_iter = lub_list_iterator_init(cpu->irqs); irq_iter;
 		irq_iter = lub_list_iterator_next(irq_iter)) {
 			irq_t *irq;

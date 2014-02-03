@@ -52,6 +52,7 @@ struct options {
 	int debug; /* Don't daemonize in debug mode */
 	int log_facility;
 	float threshold;
+	int verbose;
 };
 
 /*--------------------------------------------------------- */
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
 
 		/* Gather statistics on CPU load and number of interrupts. */
 		gather_statistics(cpus, irqs);
-		show_statistics(cpus);
+		show_statistics(cpus, opts->verbose);
 		/* Choose IRQ to move to another CPU.
 		   Don't choose IRQ if we already have new IRQs to balance */
 		if (lub_list_len(balance_irqs) == 0) {
@@ -208,6 +209,7 @@ static struct options *opts_init(void)
 	opts->pidfile = strdup(BIRQ_PIDFILE);
 	opts->log_facility = LOG_DAEMON;
 	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
+	opts->verbose = 0;
 
 	return opts;
 }
@@ -225,7 +227,7 @@ static void opts_free(struct options *opts)
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hvp:dO:t:";
+	static const char *shortopts = "hvp:dO:t:i";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
 		{"help",	0, NULL, 'h'},
@@ -234,6 +236,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		{"debug",	0, NULL, 'd'},
 		{"facility",	1, NULL, 'O'},
 		{"threshold",	1, NULL, 't'},
+		{"verbose",	0, NULL, 'i'},
 		{NULL,		0, NULL, 0}
 	};
 #endif
@@ -255,6 +258,9 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 			break;
 		case 'd':
 			opts->debug = 1;
+			break;
+		case 'i':
+			opts->verbose = 1;
 			break;
 		case 'O':
 			if (lub_log_facility(optarg, &(opts->log_facility))) {
@@ -323,6 +329,7 @@ static void help(int status, const char *argv0)
 		printf("\t-v, --version\tPrint version.\n");
 		printf("\t-h, --help\tPrint this help.\n");
 		printf("\t-d, --debug\tDebug mode. Don't daemonize.\n");
+		printf("\t-i, --verbose\tBe verbose.\n");
 		printf("\t-p <path>, --pid=<path>\tFile to save daemon's PID to.\n");
 		printf("\t-O, --facility\tSyslog facility. Default is DAEMON.\n");
 		printf("\t-t <float>, --threshold=<float>\tThreshold to consider CPU is overloaded, in percents.\n");

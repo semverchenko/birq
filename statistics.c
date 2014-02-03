@@ -142,7 +142,7 @@ void show_statistics(lub_list_t *cpus)
 		irq_iter = lub_list_iterator_next(irq_iter)) {
 			irq_t *irq;
 			irq = (irq_t *)lub_list_node__get_data(irq_iter);
-			printf("    IRQ %3u, intr %llu, %s\n", irq->irq, irq->intr, irq->desc);
+			printf("    IRQ %3u, dmf %d, intr %llu, %s\n", irq->irq, irq->dont_move, irq->intr, irq->desc);
 		}
 	}
 }

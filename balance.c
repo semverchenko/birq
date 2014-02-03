@@ -14,6 +14,24 @@
 #include "cpu.h"
 #include "irq.h"
 
+/* Drop the dont_move flag on all IRQs for specified CPU */
+static int drop_dont_move_flag(cpu_t *cpu)
+{
+	lub_list_node_t *iter;
+
+	if (!cpu)
+		return -1;
+
+	for (iter = lub_list_iterator_init(cpu->irqs); iter;
+		iter = lub_list_iterator_next(iter)) {
+		irq_t *irq;
+		irq = (irq_t *)lub_list_node__get_data(iter);
+		irq->dont_move = 0;
+	}
+
+	return 0;
+}
+
 /* Move IRQ to specified CPU. Remove IRQ from the IRQ list
    of old CPU. */
 static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
@@ -29,9 +47,12 @@ static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
 			lub_list_del(old_cpu->irqs, node);
 			lub_list_node_free(node);
 		}
+		drop_dont_move_flag(old_cpu);
 	}
-	lub_list_add(cpu->irqs, irq);
+	drop_dont_move_flag(cpu);
 	irq->cpu = cpu;
+	lub_list_add(cpu->irqs, irq);
+
 	return 0;
 }
 
@@ -101,8 +122,12 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
 			cpu = choose_cpu(cpus, complement, threshold);
 		}
 		if (cpu) {
+			if (irq->cpu)
+				printf("Move IRQ %u from CPU%u to CPU%u\n",
+					irq->irq, irq->cpu->id, cpu->id);
+			else
+				printf("Move IRQ %u to CPU%u\n", irq->irq, cpu->id);
 			move_irq_to_cpu(irq, cpu);
-			printf("Move IRQ %u to CPU%u\n", irq->irq, cpu->id);
 		}
 	}
 
@@ -159,14 +184,19 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs, float thresh
 	for (iter = lub_list_iterator_init(overloaded_cpu->irqs); iter;
 		iter = lub_list_iterator_next(iter)) {
 		irq_t *irq = (irq_t *)lub_list_node__get_data(iter);
+		if (irq->dont_move)
+			continue;
 		if (irq->intr >= max_intr) {
 			max_intr = irq->intr;
 			irq_to_move = irq;
 		}
 	}
 
-	if (irq_to_move)
+	if (irq_to_move) {
+		/* Don't move this IRQ while next iteration. */
+		irq_to_move->dont_move = 1;
 		lub_list_add(balance_irqs, irq_to_move);
+	}
 
 	return 0;
 }

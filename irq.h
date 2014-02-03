@@ -13,6 +13,7 @@ struct irq_s {
 	unsigned long long intr; /* Current number of interrupts */
 	unsigned long long old_intr; /* Previous total number of interrupts. */
 	cpu_t *cpu; /* Current IRQ affinity. Reference to correspondent CPU */
+	int dont_move; /* Flag to don't move current IRQ anyway */
 };
 typedef struct irq_s irq_t;
 

@@ -35,6 +35,8 @@ static irq_t * irq_new(int num)
 	new->old_intr = 0;
 	new->intr = 0;
 	new->cpu = NULL;
+	new->dont_move = 0;
+
 	return new;
 }
 

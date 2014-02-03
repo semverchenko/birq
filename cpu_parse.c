@@ -141,7 +141,7 @@ int show_cpus(lub_list_t *cpus)
 }
 
 /* Search for CPUs */
-int scan_cpus(lub_list_t *cpus)
+int scan_cpus(lub_list_t *cpus, int ht)
 {
 	FILE *fd;
 	char path[PATH_MAX];
@@ -178,7 +178,7 @@ int scan_cpus(lub_list_t *cpus)
 		fclose(fd);
 
 		/* Don't use second thread of Hyper Threading */
-		if (cpu_list_search_ht(cpus, package_id, core_id))
+		if (!ht && cpu_list_search_ht(cpus, package_id, core_id))
 			continue;
 
 		new = cpu_new(id);

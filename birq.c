@@ -54,6 +54,7 @@ struct options {
 	int log_facility;
 	float threshold;
 	int verbose;
+	int ht;
 };
 
 /*--------------------------------------------------------- */
@@ -123,7 +124,7 @@ int main(int argc, char **argv)
 
 	/* Scan CPUs */
 	cpus = lub_list_new(cpu_list_compare);
-	scan_cpus(cpus);
+	scan_cpus(cpus, opts->ht);
 
 	/* Prepare data structures */
 	irqs = lub_list_new(irq_list_compare);
@@ -221,6 +222,7 @@ static struct options *opts_init(void)
 	opts->log_facility = LOG_DAEMON;
 	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
 	opts->verbose = 0;
+	opts->ht = 0;
 
 	return opts;
 }
@@ -238,7 +240,7 @@ static void opts_free(struct options *opts)
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hvp:dO:t:i";
+	static const char *shortopts = "hvp:dO:t:ir";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
 		{"help",	0, NULL, 'h'},
@@ -248,6 +250,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		{"facility",	1, NULL, 'O'},
 		{"threshold",	1, NULL, 't'},
 		{"verbose",	0, NULL, 'i'},
+		{"ht",		0, NULL, 'r'},
 		{NULL,		0, NULL, 0}
 	};
 #endif
@@ -272,6 +275,9 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 			break;
 		case 'i':
 			opts->verbose = 1;
+			break;
+		case 'r':
+			opts->ht = 1;
 			break;
 		case 'O':
 			if (lub_log_facility(optarg, &(opts->log_facility))) {
@@ -341,6 +347,7 @@ static void help(int status, const char *argv0)
 		printf("\t-h, --help\tPrint this help.\n");
 		printf("\t-d, --debug\tDebug mode. Don't daemonize.\n");
 		printf("\t-i, --verbose\tBe verbose.\n");
+		printf("\t-r, --ht\tEnable hyper-threading. Not recommended.\n");
 		printf("\t-p <path>, --pid=<path>\tFile to save daemon's PID to.\n");
 		printf("\t-O, --facility\tSyslog facility. Default is DAEMON.\n");
 		printf("\t-t <float>, --threshold=<float>\tThreshold to consider CPU is overloaded, in percents.\n");

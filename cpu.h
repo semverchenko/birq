@@ -25,7 +25,7 @@ int cpu_list_compare_len(const void *first, const void *second);
 
 /* CPU list functions */
 int cpu_list_free(lub_list_t *cpus);
-int scan_cpus(lub_list_t *cpus);
+int scan_cpus(lub_list_t *cpus, int ht);
 int show_cpus(lub_list_t *cpus);
 cpu_t * cpu_list_search(lub_list_t *cpus, unsigned int id);
 

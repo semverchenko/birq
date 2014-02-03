@@ -218,6 +218,9 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs)
 			irq = irq_list_add(irqs, num);
 		}
 
+		/* Set refresh flag because IRQ was found */
+		irq->refresh = 1;
+
 		/* Find IRQ type - first non-digital and non-space */
 		while (*endptr && !isalpha(*endptr))
 			endptr++;
@@ -236,13 +239,11 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs)
 		free(irq->desc);
 		irq->desc = strndup(tok, endptr - tok);
 
-		/* Set refresh flag because IRQ was found */
-		irq->refresh = 1;
-
-		/* By default all CPUs are local for IRQ */
-		cpus_setall(irq->local_cpus);
-
 		if (new) {
+			/* By default all CPUs are local for IRQ. Real local
+			   CPUs will be find while sysfs scan. */
+			cpus_setall(irq->local_cpus);
+
 			lub_list_add(balance_irqs, irq);
 			printf("Add IRQ %3d %s\n", irq->irq, STR(irq->desc));
 		}
@@ -268,6 +269,9 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs)
 		}
 	}
 
+	/* No new IRQs were found. It doesn't need to scan sysfs. */
+	if (lub_list_len(balance_irqs) == 0)
+		return 0;
 	/* Add IRQ info from sysfs */
 	parse_sysfs(irqs);
 

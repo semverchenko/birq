@@ -15,22 +15,20 @@ lib_LIBRARIES =
 
 noinst_HEADERS = \
 	birq.h \
-	irq.h \
-	nl.h \
-	cpumask.h \
 	bitmap.h \
 	non-atomic.h \
+	cpumask.h \
+	irq.h \
 	cpu.h \
 	statistics.h \
 	balance.h
 
 birq_SOURCES = \
 	birq.c \
-	nl.c \
+	bitmap.c \
 	irq_parse.c \
 	cpu_parse.c \
 	statistics.c \
-	bitmap.c \
 	balance.c
 
 birq_LDADD = liblub.a

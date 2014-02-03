@@ -23,17 +23,11 @@
 #include <getopt.h>
 #endif
 
-#include <sys/poll.h>
-#include <sys/socket.h>
-#include <linux/types.h>
-#include <linux/netlink.h>
-
 #include "birq.h"
 #include "lub/log.h"
 #include "lub/list.h"
 #include "irq.h"
 #include "cpu.h"
-#include "nl.h"
 #include "statistics.h"
 #include "balance.h"
 
@@ -43,12 +37,9 @@
 #define QUOTE(t) #t
 #define version(v) printf("%s\n", v)
 
-static volatile int sigterm = 0; /* Exit if 1 */
-static volatile int rescan = 1; /* IRQ rescan is needed */
-
 /* Signal handlers */
+static volatile int sigterm = 0; /* Exit if 1 */
 static void sighandler(int signo);
-static void rescan_sighandler(int signo);
 
 static void help(int status, const char *argv0);
 static struct options *opts_init(void);
@@ -75,9 +66,6 @@ int main(int argc, char **argv)
 	struct sigaction sig_act;
 	sigset_t sig_set;
 
-	/* NetLink vars */
-	nl_fds_t *nl_fds = NULL; /* NetLink socket */
-
 	/* IRQ list. It contain all found IRQs. */
 	lub_list_t *irqs;
 	/* IRQs need to be balanced */
@@ -93,10 +81,6 @@ int main(int argc, char **argv)
 	/* Initialize syslog */
 	openlog(argv[0], LOG_CONS, opts->log_facility);
 	syslog(LOG_ERR, "Start daemon.\n");
-
-	/* Init NetLink socket */
-	if (!(nl_fds = nl_init()))
-		goto err;
 
 	/* Fork the daemon */
 	if (!opts->debug) {
@@ -135,15 +119,6 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &sig_act, NULL);
 	sigaction(SIGQUIT, &sig_act, NULL);
 
-	/* Set rescan signal handler */
-	sigemptyset(&sig_set);
-	sigaddset(&sig_set, SIGUSR1);
-
-	sig_act.sa_flags = 0;
-	sig_act.sa_mask = sig_set;
-	sig_act.sa_handler = &rescan_sighandler;
-	sigaction(SIGUSR1, &sig_act, NULL);
-
 	/* Scan CPUs */
 	cpus = lub_list_new(cpu_list_compare);
 	scan_cpus(cpus);
@@ -155,31 +130,9 @@ int main(int argc, char **argv)
 	/* Main loop */
 	while (!sigterm) {
 		lub_list_node_t *node;
-		int n;
 
-		if (rescan) {
-			if (opts->debug)
-				fprintf(stdout, "Scanning hardware...\n");
-			rescan = 0;
-			scan_irqs(irqs, balance_irqs);
-			if (opts->debug)
-				irq_list_show(irqs);
-		}
-
-		/* Timeout and poll for new devices */
-		while ((n = nl_poll(nl_fds, interval)) != 0) {
-			if (-1 == n) {
-				fprintf(stderr,
-					"Error: Broken NetLink socket.\n");
-				goto end;
-			}
-			if (-2 == n) /* EINTR */
-				break;
-			if (n > 0) {
-				rescan = 1;
-				continue;
-			}
-		}
+		/* Rescan PCI devices for new IRQs. */
+		scan_irqs(irqs, balance_irqs);
 
 		/* Gather statistics on CPU load and number of interrupts. */
 		gather_statistics(cpus, irqs);
@@ -191,24 +144,27 @@ int main(int argc, char **argv)
 				opts->threshold);
 		}
 		/* If nothing to balance */
-		if (lub_list_len(balance_irqs) == 0) {
+		if (lub_list_len(balance_irqs) != 0) {
+			/* Set short interval to make balancing faster. */
+			interval = BIRQ_SHORT_INTERVAL;
+			/* Choose new CPU for IRQs need to be balanced. */
+			balance(cpus, balance_irqs, opts->threshold);
+			/* Write new values to /proc/irq/<IRQ>/smp_affinity */
+			apply_affinity(balance_irqs);
+			/* Free list of balanced IRQs */
+			while ((node = lub_list__get_tail(balance_irqs))) {
+				lub_list_del(balance_irqs, node);
+				lub_list_node_free(node);
+			}
+		} else {
+			/* If nothing to balance */
 			interval = BIRQ_LONG_INTERVAL;
-			continue;
 		}
-		/* Set short interval to make balancing faster. */
-		interval = BIRQ_SHORT_INTERVAL;
-		/* Choose new CPU for IRQs need to be balanced. */
-		balance(cpus, balance_irqs, opts->threshold);
-		/* Write new values to /proc/irq/<IRQ>/smp_affinity */
-		apply_affinity(balance_irqs);
-		/* Free list of balanced IRQs */
-		while ((node = lub_list__get_tail(balance_irqs))) {
-			lub_list_del(balance_irqs, node);
-			lub_list_node_free(node);
-		}
+		
+		/* Wait before nex iteration */
+		sleep(interval);
 	}
 
-end:
 	/* Free data structures */
 	irq_list_free(irqs);
 	lub_list_free(balance_irqs);
@@ -216,9 +172,6 @@ end:
 
 	retval = 0;
 err:
-	/* Close NetLink socket */
-	nl_close(nl_fds);
-
 	/* Remove pidfile */
 	if (pidfd >= 0) {
 		if (unlink(opts->pidfile) < 0) {
@@ -241,15 +194,6 @@ err:
 static void sighandler(int signo)
 {
 	sigterm = 1;
-}
-
-/*--------------------------------------------------------- */
-/*
- * Force IRQ rescan (SIGUSR1)
- */
-static void rescan_sighandler(int signo)
-{
-	rescan = 1;
 }
 
 /*--------------------------------------------------------- */

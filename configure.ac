@@ -8,7 +8,6 @@ AC_PREREQ(2.59)
 AC_INIT([birq],
         [MAJOR_VERSION.MINOR_VERSION.MICRO_VERSION],
         [serj.kalichev at gmail dot com])
-AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
 AC_PROG_CC

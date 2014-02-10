@@ -10,6 +10,7 @@ struct irq_s {
 	char *desc; /* IRQ text description - device list */
 	int refresh; /* Refresh flag. It !=0 if irq was found while populate */
 	cpumask_t local_cpus; /* Local CPUs for this IRQs */
+	cpumask_t affinity; /* Real current affinity form /proc/irq/.../smp_affinity */
 	unsigned long long intr; /* Current number of interrupts */
 	unsigned long long old_intr; /* Previous total number of interrupts. */
 	cpu_t *cpu; /* Current IRQ affinity. Reference to correspondent CPU */

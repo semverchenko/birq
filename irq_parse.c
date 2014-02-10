@@ -197,6 +197,51 @@ static int parse_sysfs(lub_list_t *irqs)
 	return 0;
 }
 
+int irq_set_affinity(irq_t *irq, cpumask_t cpumask)
+{
+	char path[PATH_MAX];
+	char buf[NR_CPUS + 1];
+	FILE *fd;
+
+	if (!irq)
+		return -1;
+
+	sprintf(path, "%s/%u/smp_affinity", PROC_IRQ, irq->irq);
+	if (!(fd = fopen(path, "w")))
+		return -1;
+	cpumask_scnprintf(buf, sizeof(buf), cpumask);
+	fprintf(fd, "%s", buf);
+	fclose(fd);
+
+	return 0;
+}
+
+static int irq_get_affinity(irq_t *irq)
+{
+	char path[PATH_MAX];
+	FILE *fd;
+	char *str = NULL;
+	size_t sz;
+
+	if (!irq)
+		return -1;
+
+	sprintf(path, "%s/%u/smp_affinity", PROC_IRQ, irq->irq);
+	if (!(fd = fopen(path, "r")))
+		return -1;
+	if (getline(&str, &sz, fd) < 0) {
+		fclose(fd);
+		return -1;
+	}
+	fclose(fd);
+printf("3QQQQQQQQQQ %u, %s\n", irq->irq, str);
+	cpumask_parse_user(str, strlen(str), irq->affinity);
+	free(str);
+
+	return 0;
+}
+
+
 /* Parse /proc/interrupts to get actual IRQ list */
 int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs)
 {
@@ -242,6 +287,8 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs)
 		free(irq->desc);
 		irq->desc = strndup(tok, endptr - tok);
 
+		irq_get_affinity(irq);
+
 		if (new) {
 			/* By default all CPUs are local for IRQ. Real local
 			   CPUs will be find while sysfs scan. */
@@ -281,21 +328,3 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs)
 	return 0;
 }
 
-int irq_set_affinity(irq_t *irq, cpumask_t cpumask)
-{
-	char path[PATH_MAX];
-	char buf[NR_CPUS + 1];
-	FILE *fd;
-
-	if (!irq)
-		return -1;
-
-	sprintf(path, "%s/%u/smp_affinity", PROC_IRQ, irq->irq);
-	if (!(fd = fopen(path, "w")))
-		return -1;
-	cpumask_scnprintf(buf, sizeof(buf), cpumask);
-	fprintf(fd, "%s", buf);
-	fclose(fd);
-
-	return 0;
-}

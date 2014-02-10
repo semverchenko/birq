@@ -135,12 +135,11 @@ void show_statistics(lub_list_t *cpus, int verbose)
 		for (irq_iter = lub_list_iterator_init(cpu->irqs); irq_iter;
 		irq_iter = lub_list_iterator_next(irq_iter)) {
 			char buf[NR_CPUS + 1];
-			irq_t *irq;
+			irq_t *irq = (irq_t *)lub_list_node__get_data(irq_iter);
 			if (cpus_full(irq->affinity))
 				snprintf(buf, sizeof(buf), "*");
 			else
 				cpumask_scnprintf(buf, sizeof(buf), irq->affinity);
-			irq = (irq_t *)lub_list_node__get_data(irq_iter);
 			printf("    IRQ %3u, [%s], dmf %d, intr %llu, %s\n", irq->irq, buf, irq->dont_move, irq->intr, irq->desc);
 		}
 	}

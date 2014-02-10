@@ -234,7 +234,6 @@ static int irq_get_affinity(irq_t *irq)
 		return -1;
 	}
 	fclose(fd);
-printf("3QQQQQQQQQQ %u, %s\n", irq->irq, str);
 	cpumask_parse_user(str, strlen(str), irq->affinity);
 	free(str);
 

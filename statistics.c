@@ -90,8 +90,8 @@ void gather_statistics(lub_list_t *cpus, lub_list_t *irqs)
 	}
 
 	/* Parse "intr" line. Get number of interrupts. */
-	intr_str = strtok_r(line, " ", &saveptr); /* String "intr" */
-	intr_str = strtok_r(NULL, " ", &saveptr); /* Total number of interrupts */
+	strtok_r(line, " ", &saveptr); /* String "intr" */
+	strtok_r(NULL, " ", &saveptr); /* Total number of interrupts */
 	for (intr_str = strtok_r(NULL, " ", &saveptr);
 		intr_str; intr_str = strtok_r(NULL, " ", &saveptr)) {
 		unsigned long long intr = 0;

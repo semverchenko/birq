@@ -35,7 +35,7 @@ static irq_t * irq_new(int num)
 	new->old_intr = 0;
 	new->intr = 0;
 	new->cpu = NULL;
-	new->dont_move = 0;
+	new->weight = 0;
 	cpus_setall(new->local_cpus);
 	cpus_clear(new->affinity);
 	new->blacklisted = 0;

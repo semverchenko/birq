@@ -140,7 +140,7 @@ void show_statistics(lub_list_t *cpus, int verbose)
 				snprintf(buf, sizeof(buf), "*");
 			else
 				cpumask_scnprintf(buf, sizeof(buf), irq->affinity);
-			printf("    IRQ %3u, [%s], dmf %d, intr %llu, %s\n", irq->irq, buf, irq->dont_move, irq->intr, irq->desc);
+			printf("    IRQ %3u, [%s], weight %d, intr %llu, %s\n", irq->irq, buf, irq->weight, irq->intr, irq->desc);
 		}
 	}
 }

@@ -15,7 +15,7 @@
 #include "irq.h"
 
 /* Drop the dont_move flag on all IRQs for specified CPU */
-static int drop_dont_move_flag(cpu_t *cpu)
+static int dec_weight(cpu_t *cpu)
 {
 	lub_list_node_t *iter;
 
@@ -26,7 +26,8 @@ static int drop_dont_move_flag(cpu_t *cpu)
 		iter = lub_list_iterator_next(iter)) {
 		irq_t *irq;
 		irq = (irq_t *)lub_list_node__get_data(iter);
-		irq->dont_move = 0;
+		if (irq->weight)
+			irq->weight--;
 	}
 
 	return 0;
@@ -60,9 +61,9 @@ static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
 	if (irq->cpu) {
 		cpu_t *old_cpu = irq->cpu;
 		remove_irq_from_cpu(irq, old_cpu);
-		drop_dont_move_flag(old_cpu);
+		dec_weight(old_cpu);
 	}
-	drop_dont_move_flag(cpu);
+	dec_weight(cpu);
 	irq->cpu = cpu;
 	lub_list_add(cpu->irqs, irq);
 
@@ -236,7 +237,7 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs, float thresh
 		   (by NAPI) IRQs. In this case it will be not moved anyway. */
 		if (irq->intr == 0)
 			continue;
-		if (irq->dont_move)
+		if (irq->weight)
 			continue;
 		if (irq->intr >= max_intr) {
 			max_intr = irq->intr;
@@ -246,7 +247,7 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs, float thresh
 
 	if (irq_to_move) {
 		/* Don't move this IRQ while next iteration. */
-		irq_to_move->dont_move = 1;
+		irq_to_move->weight = 1;
 		lub_list_add(balance_irqs, irq_to_move);
 	}
 

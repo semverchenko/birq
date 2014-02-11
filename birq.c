@@ -55,6 +55,8 @@ struct options {
 	float threshold;
 	int verbose;
 	int ht;
+	unsigned int long_interval;
+	unsigned int short_interval;
 };
 
 /*--------------------------------------------------------- */
@@ -63,7 +65,7 @@ int main(int argc, char **argv)
 	int retval = -1;
 	struct options *opts = NULL;
 	int pidfd = -1;
-	int interval = BIRQ_SHORT_INTERVAL;
+	unsigned int interval;
 
 	/* Signal vars */
 	struct sigaction sig_act;
@@ -130,6 +132,9 @@ int main(int argc, char **argv)
 	irqs = lub_list_new(irq_list_compare);
 	balance_irqs = lub_list_new(irq_list_compare);
 
+	/* Set period */
+	interval = opts->short_interval;
+
 	/* Main loop */
 	while (!sigterm) {
 		lub_list_node_t *node;
@@ -159,7 +164,7 @@ int main(int argc, char **argv)
 		/* If nothing to balance */
 		if (lub_list_len(balance_irqs) != 0) {
 			/* Set short interval to make balancing faster. */
-			interval = BIRQ_SHORT_INTERVAL;
+			interval = opts->short_interval;
 			/* Choose new CPU for IRQs need to be balanced. */
 			balance(cpus, balance_irqs, opts->threshold);
 			/* Write new values to /proc/irq/<IRQ>/smp_affinity */
@@ -171,7 +176,7 @@ int main(int argc, char **argv)
 			}
 		} else {
 			/* If nothing to balance */
-			interval = BIRQ_LONG_INTERVAL;
+			interval = opts->long_interval;
 		}
 		
 		/* Wait before nex iteration */
@@ -223,6 +228,8 @@ static struct options *opts_init(void)
 	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
 	opts->verbose = 0;
 	opts->ht = 0;
+	opts->long_interval = BIRQ_LONG_INTERVAL;
+	opts->short_interval = BIRQ_SHORT_INTERVAL;
 
 	return opts;
 }

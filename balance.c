@@ -32,6 +32,24 @@ static int drop_dont_move_flag(cpu_t *cpu)
 	return 0;
 }
 
+/* Remove IRQ from specified CPU */
+static int remove_irq_from_cpu(irq_t *irq, cpu_t *cpu)
+{
+	lub_list_node_t *node;
+
+	if (!irq || !cpu)
+		return -1;
+
+	irq->cpu = NULL;
+	node = lub_list_search(cpu->irqs, irq);
+	if (!node)
+		return 0;
+	lub_list_del(cpu->irqs, node);
+	lub_list_node_free(node);
+
+	return 0;
+}
+
 /* Move IRQ to specified CPU. Remove IRQ from the IRQ list
    of old CPU. */
 static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
@@ -41,12 +59,7 @@ static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
 
 	if (irq->cpu) {
 		cpu_t *old_cpu = irq->cpu;
-		lub_list_node_t *node;
-		node = lub_list_search(old_cpu->irqs, irq);
-		if (node) {
-			lub_list_del(old_cpu->irqs, node);
-			lub_list_node_free(node);
-		}
+		remove_irq_from_cpu(irq, old_cpu);
 		drop_dont_move_flag(old_cpu);
 	}
 	drop_dont_move_flag(cpu);
@@ -98,6 +111,36 @@ static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t cpumask, float threshold)
 	lub_list_free(min_cpus);
 
 	return cpu;
+}
+
+static int irq_set_affinity(irq_t *irq, cpumask_t cpumask)
+{
+	char path[PATH_MAX];
+	char buf[NR_CPUS + 1];
+	FILE *fd;
+
+	if (!irq)
+		return -1;
+
+	sprintf(path, "%s/%u/smp_affinity", PROC_IRQ, irq->irq);
+	if (!(fd = fopen(path, "w")))
+		return -1;
+	cpumask_scnprintf(buf, sizeof(buf), cpumask);
+	fprintf(fd, "%s", buf);
+	fclose(fd);
+
+	/* Check for newly apllied affinity. The affinities for some
+	   IRQ can't be changed. So don't consider such IRQs. The
+	   example is IRQ 0 - timer. */
+	irq_get_affinity(irq);
+	if (!cpus_equal(irq->affinity, cpumask)) {
+		/* Blacklist this IRQ */
+		irq->blacklisted = 1;
+		remove_irq_from_cpu(irq, irq->cpu);
+		printf("Blacklist IRQ %u\n", irq->irq);
+	}
+
+	return 0;
 }
 
 /* Find best CPUs for IRQs need to be balanced. */

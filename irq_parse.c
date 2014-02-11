@@ -38,6 +38,7 @@ static irq_t * irq_new(int num)
 	new->dont_move = 0;
 	cpus_setall(new->local_cpus);
 	cpus_clear(new->affinity);
+	new->blacklisted = 0;
 
 	return new;
 }
@@ -199,26 +200,7 @@ static int parse_sysfs(lub_list_t *irqs)
 	return 0;
 }
 
-int irq_set_affinity(irq_t *irq, cpumask_t cpumask)
-{
-	char path[PATH_MAX];
-	char buf[NR_CPUS + 1];
-	FILE *fd;
-
-	if (!irq)
-		return -1;
-
-	sprintf(path, "%s/%u/smp_affinity", PROC_IRQ, irq->irq);
-	if (!(fd = fopen(path, "w")))
-		return -1;
-	cpumask_scnprintf(buf, sizeof(buf), cpumask);
-	fprintf(fd, "%s", buf);
-	fclose(fd);
-
-	return 0;
-}
-
-static int irq_get_affinity(irq_t *irq)
+int irq_get_affinity(irq_t *irq)
 {
 	char path[PATH_MAX];
 	FILE *fd;
@@ -270,6 +252,10 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs)
 		/* Set refresh flag because IRQ was found */
 		irq->refresh = 1;
 
+		/* Doesn't refresh info for blacklisted IRQs */
+		if (irq->blacklisted)
+			continue;
+
 		/* Find IRQ type - first non-digital and non-space */
 		while (*endptr && !isalpha(*endptr))
 			endptr++;
@@ -288,12 +274,12 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs)
 		free(irq->desc);
 		irq->desc = strndup(tok, endptr - tok);
 
-		irq_get_affinity(irq);
-
 		if (new) {
 			/* By default all CPUs are local for IRQ. Real local
 			   CPUs will be find while sysfs scan. */
 			cpus_setall(irq->local_cpus);
+
+			irq_get_affinity(irq);
 
 			lub_list_add(balance_irqs, irq);
 			printf("Add IRQ %3d %s\n", irq->irq, STR(irq->desc));

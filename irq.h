@@ -15,6 +15,7 @@ struct irq_s {
 	unsigned long long old_intr; /* Previous total number of interrupts. */
 	cpu_t *cpu; /* Current IRQ affinity. Reference to correspondent CPU */
 	int dont_move; /* Flag to don't move current IRQ anyway */
+	int blacklisted; /* IRQ can be blacklisted when can't change affinity */
 };
 typedef struct irq_s irq_t;
 
@@ -30,6 +31,6 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs);
 int irq_list_free(lub_list_t *irqs);
 int irq_list_show(lub_list_t *irqs);
 irq_t * irq_list_search(lub_list_t *irqs, unsigned int num);
-int irq_set_affinity(irq_t *irq, cpumask_t cpumask);
+int irq_get_affinity(irq_t *irq);
 
 #endif

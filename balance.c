@@ -188,6 +188,11 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs, float thresh
 	for (iter = lub_list_iterator_init(overloaded_cpu->irqs); iter;
 		iter = lub_list_iterator_next(iter)) {
 		irq_t *irq = (irq_t *)lub_list_node__get_data(iter);
+		/* Don't move any IRQs with intr=0. It can be unused IRQ. In
+		   this case the moving is not needed. It can be overloaded
+		   (by NAPI) IRQs. In this case it will be not moved anyway. */
+		if (irq->intr == 0)
+			continue;
 		if (irq->dont_move)
 			continue;
 		if (irq->intr >= max_intr) {

@@ -116,11 +116,15 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
 		/* If local CPU is not found then try to use
 		   CPU from another NUMA node. It's better then
 		   overloaded CPUs. */
-		if (!cpu) {
+		/* Non-local CPUs were disabled. It seems there is
+		   no advantages to use them. The all interactions will
+		   be held by QPI-like interfaces through local CPUs. */
+/*		if (!cpu) {
 			cpumask_t complement;
 			cpus_complement(complement, irq->local_cpus);
 			cpu = choose_cpu(cpus, complement, threshold);
 		}
+*/
 		if (cpu) {
 			if (irq->cpu)
 				printf("Move IRQ %u from CPU%u to CPU%u\n",

@@ -15,19 +15,21 @@
 #include "irq.h"
 
 /* Drop the dont_move flag on all IRQs for specified CPU */
-static int dec_weight(cpu_t *cpu)
+static int dec_weight(cpu_t *cpu, int value)
 {
 	lub_list_node_t *iter;
 
 	if (!cpu)
+		return -1;
+	if (value < 0)
 		return -1;
 
 	for (iter = lub_list_iterator_init(cpu->irqs); iter;
 		iter = lub_list_iterator_next(iter)) {
 		irq_t *irq;
 		irq = (irq_t *)lub_list_node__get_data(iter);
-		if (irq->weight)
-			irq->weight--;
+		if (irq->weight >= value)
+			irq->weight -= value;
 	}
 
 	return 0;
@@ -61,9 +63,9 @@ static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
 	if (irq->cpu) {
 		cpu_t *old_cpu = irq->cpu;
 		remove_irq_from_cpu(irq, old_cpu);
-		dec_weight(old_cpu);
+		dec_weight(old_cpu, 1);
 	}
-	dec_weight(cpu);
+	dec_weight(cpu, 1);
 	irq->cpu = cpu;
 	lub_list_add(cpu->irqs, irq);
 
@@ -197,6 +199,69 @@ int apply_affinity(lub_list_t *balance_irqs)
 	return 0;
 }
 
+
+/* Count the number of intr-not-null IRQs and minimal IRQ weight */
+static int irq_list_info(lub_list_t *irqs, int *min_weight, unsigned int *irq_num)
+{
+	lub_list_node_t *iter;
+
+	if (!irqs)
+		return -1;
+
+	*min_weight = -1;
+	*irq_num = 0;
+	for (iter = lub_list_iterator_init(irqs); iter;
+		iter = lub_list_iterator_next(iter)) {
+		irq_t *irq = (irq_t *)lub_list_node__get_data(iter);
+		if (irq->intr == 0)
+			continue;
+		if ((*min_weight < 0) || (irq->weight < *min_weight))
+			*min_weight = irq->weight;
+		*irq_num += 1;
+	}
+
+	return 0;
+}
+
+/* Search for most overloaded CPU */
+static cpu_t * most_overloaded_cpu(lub_list_t *cpus, float threshold)
+{
+	lub_list_node_t *iter;
+	cpu_t *overloaded_cpu = NULL;
+	float max_load = 0.0;
+
+	/* Search for the most overloaded CPU.
+	   The load must be greater than threshold. */
+	for (iter = lub_list_iterator_init(cpus); iter;
+		iter = lub_list_iterator_next(iter)) {
+		cpu_t *cpu = (cpu_t *)lub_list_node__get_data(iter);
+		int min_weight = -1;
+		unsigned int irq_num = 0;
+
+		if (cpu->load < threshold)
+			continue;
+		if (cpu->load <= max_load)
+			continue;
+
+		/* Don't move last IRQ */
+		if (lub_list_len(cpu->irqs) <= 1)
+			continue;
+
+		irq_list_info(cpu->irqs, &min_weight, &irq_num);
+		/* All IRQs has intr=0 */
+		if (irq_num == 0)
+			continue;
+		if (min_weight > 0)
+			dec_weight(cpu, min_weight);
+
+		/* Ok, it's good CPU to try to free it */
+		max_load = cpu->load;
+		overloaded_cpu = cpu;
+	}
+
+	return overloaded_cpu;
+}
+
 /* Search for the overloaded CPUs and then choose best IRQ for moving to
    another CPU. The best IRQ is IRQ with maximum number of interrupts.
    The IRQs with small number of interrupts have very low load or very
@@ -205,30 +270,18 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs, float thresh
 {
 	lub_list_node_t *iter;
 	cpu_t *overloaded_cpu = NULL;
+	irq_t *max_irq = NULL;
+	irq_t *min_irq = NULL;
 	irq_t *irq_to_move = NULL;
-	float max_load = 0.0;
 	unsigned long long max_intr = 0;
+	unsigned long long min_intr = (unsigned long long)(-1);
 
-	/* Search for the most overloaded CPU.
-	   The load must be greater than threshold. */
-	for (iter = lub_list_iterator_init(cpus); iter;
-		iter = lub_list_iterator_next(iter)) {
-		cpu_t *cpu = (cpu_t *)lub_list_node__get_data(iter);
-		if (cpu->load < threshold)
-			continue;
-		if (cpu->load > max_load) {
-			max_load = cpu->load;
-			overloaded_cpu = cpu;
-		}
-	}
-	/* Can't find overloaded CPUs */
-	if (!overloaded_cpu)
+	/* Search for overloaded CPUs */
+	if (!(overloaded_cpu = most_overloaded_cpu(cpus, threshold)))
 		return 0;
 
 	/* Search for the IRQ (owned by overloaded CPU) with
-	   maximum number of interrupts. */
-	if (lub_list_len(overloaded_cpu->irqs) <= 1)
-		return 0;
+	   maximum/minimum number of interrupts. */
 	for (iter = lub_list_iterator_init(overloaded_cpu->irqs); iter;
 		iter = lub_list_iterator_next(iter)) {
 		irq_t *irq = (irq_t *)lub_list_node__get_data(iter);
@@ -239,12 +292,20 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs, float thresh
 			continue;
 		if (irq->weight)
 			continue;
-		if (irq->intr >= max_intr) {
+		/* Get IRQ with max intr */
+		if (irq->intr > max_intr) {
 			max_intr = irq->intr;
-			irq_to_move = irq;
+			max_irq = irq;
+		}
+		/* Get IRQ with min intr */
+		if (irq->intr < min_intr) {
+			min_intr = irq->intr;
+			min_irq = irq;
 		}
 	}
 
+	irq_to_move = min_irq;
+	irq_to_move = max_irq;
 	if (irq_to_move) {
 		/* Don't move this IRQ while next iteration. */
 		irq_to_move->weight = 1;

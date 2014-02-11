@@ -33,10 +33,8 @@
 #include "balance.h"
 
 #ifndef VERSION
-#define VERSION 1.0.0
+#define VERSION "1.0.0"
 #endif
-#define QUOTE(t) #t
-#define version(v) printf("%s\n", v)
 
 /* Signal handlers */
 static volatile int sigterm = 0; /* Exit if 1 */
@@ -247,18 +245,19 @@ static void opts_free(struct options *opts)
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hvp:dO:t:ir";
+	static const char *shortopts = "hp:dO:t:vri:I:";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
-		{"help",	0, NULL, 'h'},
-		{"version",	0, NULL, 'v'},
-		{"pid",		1, NULL, 'p'},
-		{"debug",	0, NULL, 'd'},
-		{"facility",	1, NULL, 'O'},
-		{"threshold",	1, NULL, 't'},
-		{"verbose",	0, NULL, 'i'},
-		{"ht",		0, NULL, 'r'},
-		{NULL,		0, NULL, 0}
+		{"help",		0, NULL, 'h'},
+		{"pid",			1, NULL, 'p'},
+		{"debug",		0, NULL, 'd'},
+		{"facility",		1, NULL, 'O'},
+		{"threshold",		1, NULL, 't'},
+		{"verbose",		0, NULL, 'v'},
+		{"ht",			0, NULL, 'r'},
+		{"short-interval",	1, NULL, 'i'},
+		{"long-interval",	1, NULL, 'i'},
+		{NULL,			0, NULL, 0}
 	};
 #endif
 	optind = 1;
@@ -280,7 +279,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		case 'd':
 			opts->debug = 1;
 			break;
-		case 'i':
+		case 'v':
 			opts->verbose = 1;
 			break;
 		case 'r':
@@ -308,12 +307,26 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 			}
 			}
 			break;
+		case 'i':
+			{
+			char *endptr;
+			unsigned long int val;
+			val = strtoul(optarg, &endptr, 10);
+			if (endptr != optarg)
+				opts->short_interval = val;
+			}
+			break;
+		case 'I':
+			{
+			char *endptr;
+			unsigned long int val;
+			val = strtoul(optarg, &endptr, 10);
+			if (endptr != optarg)
+				opts->long_interval = val;
+			}
+			break;
 		case 'h':
 			help(0, argv[0]);
-			exit(0);
-			break;
-		case 'v':
-			version(VERSION);
 			exit(0);
 			break;
 		default:
@@ -346,17 +359,19 @@ static void help(int status, const char *argv0)
 		fprintf(stderr, "Try `%s -h' for more information.\n",
 			name);
 	} else {
-		printf("Usage: %s [options]\n", name);
+		printf("Version : %s\n", VERSION);
+		printf("Usage   : %s [options]\n", name);
 		printf("Daemon to store user configuration (i.e. commands). "
 			"The part of the klish project.\n");
-		printf("Options:\n");
-		printf("\t-v, --version\tPrint version.\n");
+		printf("Options :\n");
 		printf("\t-h, --help\tPrint this help.\n");
 		printf("\t-d, --debug\tDebug mode. Don't daemonize.\n");
-		printf("\t-i, --verbose\tBe verbose.\n");
+		printf("\t-v, --verbose\tBe verbose.\n");
 		printf("\t-r, --ht\tEnable hyper-threading. Not recommended.\n");
 		printf("\t-p <path>, --pid=<path>\tFile to save daemon's PID to.\n");
 		printf("\t-O, --facility\tSyslog facility. Default is DAEMON.\n");
 		printf("\t-t <float>, --threshold=<float>\tThreshold to consider CPU is overloaded, in percents.\n");
+		printf("\t-i <sec>, --short-interval=<sec>\tShort iteration interval.\n");
+		printf("\t-I <sec>, --long-interval=<sec>\tLong iteration interval.\n");
 	}
 }

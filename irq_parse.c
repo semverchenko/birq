@@ -36,6 +36,8 @@ static irq_t * irq_new(int num)
 	new->intr = 0;
 	new->cpu = NULL;
 	new->dont_move = 0;
+	cpus_setall(new->local_cpus);
+	cpus_clear(new->affinity);
 
 	return new;
 }

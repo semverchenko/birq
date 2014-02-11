@@ -76,6 +76,7 @@ void gather_statistics(lub_list_t *cpus, lub_list_t *irqs)
 			l_irq + l_softirq + l_steal + l_guest + l_guest_nice;
 		load_irq = l_irq + l_softirq;
 
+		cpu->old_load = cpu->load;
 		if (cpu->old_load_all == 0) {
 			/* When old_load_all = 0 - it's first iteration */
 			cpu->load = 0;
@@ -126,9 +127,9 @@ void show_statistics(lub_list_t *cpus, int verbose)
 		lub_list_node_t *irq_iter;
 
 		cpu = (cpu_t *)lub_list_node__get_data(iter);
-		printf("CPU%u package %u, core %u, irqs %d, load %.2f%%\n",
+		printf("CPU%u package %u, core %u, irqs %d, old %.2f%%, load %.2f%%\n",
 			cpu->id, cpu->package_id, cpu->core_id,
-			lub_list_len(cpu->irqs), cpu->load);
+			lub_list_len(cpu->irqs), cpu->old_load, cpu->load);
 
 		if (!verbose)
 			continue;

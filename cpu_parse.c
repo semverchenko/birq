@@ -39,6 +39,7 @@ static cpu_t * cpu_new(unsigned int id)
 	new->id = id;
 	new->old_load_all = 0;
 	new->old_load_irq = 0;
+	new->old_load = 0;
 	new->load = 0;
 	new->irqs = lub_list_new(irq_list_compare);
 	cpus_clear(new->cpumask);

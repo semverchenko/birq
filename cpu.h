@@ -11,6 +11,7 @@ struct cpu_s {
 	cpumask_t cpumask; /* Mask with one bit set - current CPU. */
 	unsigned long long old_load_all; /* Previous whole load from /proc/stat */
 	unsigned long long old_load_irq; /* Previous IRQ, softIRQ load */
+	float old_load; /* Previous CPU load in percents. */
 	float load; /* Current CPU load in percents. */
 	lub_list_t *irqs; /* List of IRQs belong to this CPU. */
 };

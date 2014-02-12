@@ -232,7 +232,7 @@ static struct options *opts_init(void)
 	opts->ht = 0;
 	opts->long_interval = BIRQ_LONG_INTERVAL;
 	opts->short_interval = BIRQ_SHORT_INTERVAL;
-	opts->strategy = BIRQ_CHOOSE_MAX;
+	opts->strategy = BIRQ_CHOOSE_RND;
 
 	return opts;
 }

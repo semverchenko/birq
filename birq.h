@@ -11,6 +11,6 @@
 
 /* Threshold to consider CPU as overloaded.
    In percents, float value. Can't be greater than 100.0 */
-#define BIRQ_DEFAULT_THRESHOLD 98.0
+#define BIRQ_DEFAULT_THRESHOLD 99.0
 
 #endif

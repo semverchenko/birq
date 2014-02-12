@@ -327,9 +327,10 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs,
 				irq_to_move = irq;
 			}
 		} else if (strategy == BIRQ_CHOOSE_RND) {
-			if (current == choose)
+			if (current == choose) {
 				irq_to_move = irq;
-			break;
+				break;
+			}
 		}
 		current++;
 	}

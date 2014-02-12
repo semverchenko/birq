@@ -13,6 +13,7 @@
 #include "statistics.h"
 #include "cpu.h"
 #include "irq.h"
+#include "balance.h"
 
 /* Drop the dont_move flag on all IRQs for specified CPU */
 static int dec_weight(cpu_t *cpu, int value)
@@ -201,23 +202,35 @@ int apply_affinity(lub_list_t *balance_irqs)
 
 
 /* Count the number of intr-not-null IRQs and minimal IRQ weight */
-static int irq_list_info(lub_list_t *irqs, int *min_weight, unsigned int *irq_num)
+static int irq_list_info(lub_list_t *irqs, int *min_weight,
+	unsigned int *irq_num, unsigned int *candidates_num)
 {
 	lub_list_node_t *iter;
 
 	if (!irqs)
 		return -1;
 
-	*min_weight = -1;
-	*irq_num = 0;
+	if (min_weight)
+		*min_weight = -1;
+	if (irq_num)
+		*irq_num = 0;
+	if (candidates_num)
+		*candidates_num = 0;
 	for (iter = lub_list_iterator_init(irqs); iter;
 		iter = lub_list_iterator_next(iter)) {
 		irq_t *irq = (irq_t *)lub_list_node__get_data(iter);
 		if (irq->intr == 0)
 			continue;
-		if ((*min_weight < 0) || (irq->weight < *min_weight))
-			*min_weight = irq->weight;
-		*irq_num += 1;
+		if (min_weight) {
+			if ((*min_weight < 0) || (irq->weight < *min_weight))
+				*min_weight = irq->weight;
+		}
+		if (irq_num)
+			*irq_num += 1;
+		if (irq->weight)
+			continue;
+		if (candidates_num)
+			*candidates_num += 1;
 	}
 
 	return 0;
@@ -247,7 +260,7 @@ static cpu_t * most_overloaded_cpu(lub_list_t *cpus, float threshold)
 		if (lub_list_len(cpu->irqs) <= 1)
 			continue;
 
-		irq_list_info(cpu->irqs, &min_weight, &irq_num);
+		irq_list_info(cpu->irqs, &min_weight, &irq_num, NULL);
 		/* All IRQs has intr=0 */
 		if (irq_num == 0)
 			continue;
@@ -266,19 +279,28 @@ static cpu_t * most_overloaded_cpu(lub_list_t *cpus, float threshold)
    another CPU. The best IRQ is IRQ with maximum number of interrupts.
    The IRQs with small number of interrupts have very low load or very
    high load (in a case of NAPI). */
-int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
+int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs,
+	float threshold, birq_choose_strategy_e strategy)
 {
 	lub_list_node_t *iter;
 	cpu_t *overloaded_cpu = NULL;
-	irq_t *max_irq = NULL;
-	irq_t *min_irq = NULL;
 	irq_t *irq_to_move = NULL;
 	unsigned long long max_intr = 0;
 	unsigned long long min_intr = (unsigned long long)(-1);
+	unsigned int choose = 0;
+	unsigned int current = 0;
 
 	/* Search for overloaded CPUs */
 	if (!(overloaded_cpu = most_overloaded_cpu(cpus, threshold)))
 		return 0;
+
+	if (strategy == BIRQ_CHOOSE_RND) {
+		unsigned int candidates = 0;
+		irq_list_info(overloaded_cpu->irqs, NULL, NULL, &candidates);
+		if (candidates == 0)
+			return 0;
+		choose = rand() % candidates;
+	}
 
 	/* Search for the IRQ (owned by overloaded CPU) with
 	   maximum/minimum number of interrupts. */
@@ -292,20 +314,26 @@ int choose_irqs_to_move(lub_list_t *cpus, lub_list_t *balance_irqs, float thresh
 			continue;
 		if (irq->weight)
 			continue;
-		/* Get IRQ with max intr */
-		if (irq->intr > max_intr) {
-			max_intr = irq->intr;
-			max_irq = irq;
+		if (strategy == BIRQ_CHOOSE_MAX) {
+			/* Get IRQ with max intr */
+			if (irq->intr > max_intr) {
+				max_intr = irq->intr;
+				irq_to_move = irq;
+			}
+		} else if (strategy == BIRQ_CHOOSE_MIN) {
+			/* Get IRQ with min intr */
+			if (irq->intr < min_intr) {
+				min_intr = irq->intr;
+				irq_to_move = irq;
+			}
+		} else if (strategy == BIRQ_CHOOSE_RND) {
+			if (current == choose)
+				irq_to_move = irq;
+			break;
 		}
-		/* Get IRQ with min intr */
-		if (irq->intr < min_intr) {
-			min_intr = irq->intr;
-			min_irq = irq;
-		}
+		current++;
 	}
 
-	irq_to_move = min_irq;
-	irq_to_move = max_irq;
 	if (irq_to_move) {
 		/* Don't move this IRQ while next iteration. */
 		irq_to_move->weight = 1;

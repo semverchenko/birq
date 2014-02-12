@@ -55,6 +55,7 @@ struct options {
 	int ht;
 	unsigned int long_interval;
 	unsigned int short_interval;
+	birq_choose_strategy_e strategy;
 };
 
 /*--------------------------------------------------------- */
@@ -122,6 +123,9 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &sig_act, NULL);
 	sigaction(SIGQUIT, &sig_act, NULL);
 
+	/* Randomize */
+	srand(time(NULL));
+
 	/* Scan CPUs */
 	cpus = lub_list_new(cpu_list_compare);
 	scan_cpus(cpus, opts->ht);
@@ -157,7 +161,7 @@ int main(int argc, char **argv)
 		   Don't choose IRQ if we already have new IRQs to balance */
 		if (lub_list_len(balance_irqs) == 0) {
 			choose_irqs_to_move(cpus, balance_irqs,
-				opts->threshold);
+				opts->threshold, opts->strategy);
 		}
 		/* If nothing to balance */
 		if (lub_list_len(balance_irqs) != 0) {
@@ -228,6 +232,7 @@ static struct options *opts_init(void)
 	opts->ht = 0;
 	opts->long_interval = BIRQ_LONG_INTERVAL;
 	opts->short_interval = BIRQ_SHORT_INTERVAL;
+	opts->strategy = BIRQ_CHOOSE_MAX;
 
 	return opts;
 }
@@ -245,7 +250,7 @@ static void opts_free(struct options *opts)
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hp:dO:t:vri:I:";
+	static const char *shortopts = "hp:dO:t:vri:I:c:";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
 		{"help",		0, NULL, 'h'},
@@ -257,6 +262,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		{"ht",			0, NULL, 'r'},
 		{"short-interval",	1, NULL, 'i'},
 		{"long-interval",	1, NULL, 'i'},
+		{"choose",		1, NULL, 'c'},
 		{NULL,			0, NULL, 0}
 	};
 #endif
@@ -325,6 +331,19 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 				opts->long_interval = val;
 			}
 			break;
+		case 'c':
+			if (!strcmp(optarg, "max"))
+				opts->strategy = BIRQ_CHOOSE_MAX;
+			else if (!strcmp(optarg, "min"))
+				opts->strategy = BIRQ_CHOOSE_MIN;
+			else if (!strcmp(optarg, "rnd"))
+				opts->strategy = BIRQ_CHOOSE_RND;
+			else {
+				fprintf(stderr, "Error: Illegal strategy value %s.\n", optarg);
+				help(-1, argv[0]);
+				exit(-1);
+			}
+			break;
 		case 'h':
 			help(0, argv[0]);
 			exit(0);
@@ -373,5 +392,6 @@ static void help(int status, const char *argv0)
 		printf("\t-t <float>, --threshold=<float>\tThreshold to consider CPU is overloaded, in percents.\n");
 		printf("\t-i <sec>, --short-interval=<sec>\tShort iteration interval.\n");
 		printf("\t-I <sec>, --long-interval=<sec>\tLong iteration interval.\n");
+		printf("\t-c <strategy>, --choose=<strategy>\tStrategy to choose IRQ to move (min/max/rnd).\n");
 	}
 }

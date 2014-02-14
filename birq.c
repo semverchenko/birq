@@ -380,8 +380,7 @@ static void help(int status, const char *argv0)
 	} else {
 		printf("Version : %s\n", VERSION);
 		printf("Usage   : %s [options]\n", name);
-		printf("Daemon to store user configuration (i.e. commands). "
-			"The part of the klish project.\n");
+		printf("Daemon to balance IRQs.\n");
 		printf("Options :\n");
 		printf("\t-h, --help\tPrint this help.\n");
 		printf("\t-d, --debug\tDebug mode. Don't daemonize.\n");

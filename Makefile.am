@@ -21,7 +21,8 @@ noinst_HEADERS = \
 	irq.h \
 	cpu.h \
 	statistics.h \
-	balance.h
+	balance.h \
+	proximity.h
 
 birq_SOURCES = \
 	birq.c \
@@ -29,7 +30,8 @@ birq_SOURCES = \
 	irq_parse.c \
 	cpu_parse.c \
 	statistics.c \
-	balance.c
+	balance.c \
+	proximity.c
 
 birq_LDADD = liblub.a
 birq_DEPENDENCIES = liblub.a

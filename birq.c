@@ -28,9 +28,11 @@
 #include "lub/log.h"
 #include "lub/list.h"
 #include "irq.h"
+#include "numa.h"
 #include "cpu.h"
 #include "statistics.h"
 #include "balance.h"
+#include "pxm.h"
 
 #ifndef VERSION
 #define VERSION "1.0.0"
@@ -48,6 +50,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts);
 /* Command line options */
 struct options {
 	char *pidfile;
+	char *pxm; /* Proximity config file */
 	int debug; /* Don't daemonize in debug mode */
 	int log_facility;
 	float threshold;
@@ -76,6 +79,10 @@ int main(int argc, char **argv)
 	lub_list_t *balance_irqs;
 	/* CPU list. It contain all found CPUs. */
 	lub_list_t *cpus;
+	/* NUMA list. It contain all found NUMA nodes. */
+	lub_list_t *numas;
+	/* Proximity list. */
+	lub_list_t *pxms;
 
 	/* Parse command line options */
 	opts = opts_init();
@@ -126,13 +133,28 @@ int main(int argc, char **argv)
 	/* Randomize */
 	srand(time(NULL));
 
+	/* Scan NUMA nodes */
+	numas = lub_list_new(numa_list_compare);
+	scan_numas(numas);
+	if (opts->verbose)
+		show_numas(numas);
+
 	/* Scan CPUs */
 	cpus = lub_list_new(cpu_list_compare);
 	scan_cpus(cpus, opts->ht);
+	if (opts->verbose)
+		show_cpus(cpus);
 
 	/* Prepare data structures */
 	irqs = lub_list_new(irq_list_compare);
 	balance_irqs = lub_list_new(irq_list_compare);
+
+	/* Parse proximity file */
+	pxms = lub_list_new(NULL);
+	if (opts->pxm)
+		parse_pxm_config(opts->pxm, pxms, numas);
+	if (opts->verbose)
+		show_pxms(pxms);
 
 	/* Set period */
 	interval = opts->short_interval;
@@ -150,7 +172,7 @@ int main(int argc, char **argv)
 		printf("----[ %s ]----------------------------------------------------------------\n", outstr);
 
 		/* Rescan PCI devices for new IRQs. */
-		scan_irqs(irqs, balance_irqs);
+		scan_irqs(irqs, balance_irqs, pxms);
 		if (opts->verbose)
 			irq_list_show(irqs);
 
@@ -189,6 +211,8 @@ int main(int argc, char **argv)
 	irq_list_free(irqs);
 	lub_list_free(balance_irqs);
 	cpu_list_free(cpus);
+	numa_list_free(numas);
+	pxm_list_free(pxms);
 
 	retval = 0;
 err:
@@ -226,6 +250,7 @@ static struct options *opts_init(void)
 	assert(opts);
 	opts->debug = 0; /* daemonize by default */
 	opts->pidfile = strdup(BIRQ_PIDFILE);
+	opts->pxm = NULL;
 	opts->log_facility = LOG_DAEMON;
 	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
 	opts->verbose = 0;
@@ -243,6 +268,8 @@ static void opts_free(struct options *opts)
 {
 	if (opts->pidfile)
 		free(opts->pidfile);
+	if (opts->pxm)
+		free(opts->pxm);
 	free(opts);
 }
 
@@ -250,7 +277,7 @@ static void opts_free(struct options *opts)
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hp:dO:t:vri:I:c:";
+	static const char *shortopts = "hp:dO:t:vri:I:s:x:";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
 		{"help",		0, NULL, 'h'},
@@ -262,7 +289,8 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		{"ht",			0, NULL, 'r'},
 		{"short-interval",	1, NULL, 'i'},
 		{"long-interval",	1, NULL, 'i'},
-		{"choose",		1, NULL, 'c'},
+		{"strategy",		1, NULL, 's'},
+		{"pxm",			1, NULL, 'x'},
 		{NULL,			0, NULL, 0}
 	};
 #endif
@@ -281,6 +309,11 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 			if (opts->pidfile)
 				free(opts->pidfile);
 			opts->pidfile = strdup(optarg);
+			break;
+		case 'x':
+			if (opts->pxm)
+				free(opts->pxm);
+			opts->pxm = strdup(optarg);
 			break;
 		case 'd':
 			opts->debug = 1;
@@ -387,6 +420,7 @@ static void help(int status, const char *argv0)
 		printf("\t-v, --verbose\tBe verbose.\n");
 		printf("\t-r, --ht\tEnable hyper-threading. Not recommended.\n");
 		printf("\t-p <path>, --pid=<path>\tFile to save daemon's PID to.\n");
+		printf("\t-x <path>, --pxm=<path>\tProximity config file.\n");
 		printf("\t-O, --facility\tSyslog facility. Default is DAEMON.\n");
 		printf("\t-t <float>, --threshold=<float>\tThreshold to consider CPU is overloaded, in percents.\n");
 		printf("\t-i <sec>, --short-interval=<sec>\tShort iteration interval.\n");

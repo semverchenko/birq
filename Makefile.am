@@ -20,18 +20,20 @@ noinst_HEADERS = \
 	cpumask.h \
 	irq.h \
 	cpu.h \
+	numa.h \
 	statistics.h \
 	balance.h \
-	proximity.h
+	pxm.h
 
 birq_SOURCES = \
 	birq.c \
 	bitmap.c \
-	irq_parse.c \
-	cpu_parse.c \
+	irq.c \
+	cpu.c \
+	numa.c \
 	statistics.c \
 	balance.c \
-	proximity.c
+	pxm.c
 
 birq_LDADD = liblub.a
 birq_DEPENDENCIES = liblub.a

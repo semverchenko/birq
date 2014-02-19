@@ -80,7 +80,7 @@ int show_pxms(lub_list_t *pxms)
 	return 0;
 }
 
-int pxm_search(lub_list_t *pxms, const char *addr, cpumask_t cpumask)
+int pxm_search(lub_list_t *pxms, const char *addr, cpumask_t *cpumask)
 {
 	lub_list_node_t *iter;
 	int maxaddr = 0;
@@ -99,8 +99,7 @@ int pxm_search(lub_list_t *pxms, const char *addr, cpumask_t cpumask)
 		if (maxaddr >= len)
 			continue;
 		maxaddr = len;
-		cpus_clear(cpumask);
-		cpus_or(cpumask, cpumask, pxm->cpumask);
+		*cpumask = pxm->cpumask;
 	}
 
 	if (!maxaddr)

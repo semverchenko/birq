@@ -130,8 +130,8 @@ int parse_pxm_config(const char *fname, lub_list_t *pxms, lub_list_t *numas)
 		cpumask_t cpumask;
 
 		ln++; /* Next line */
-		if (getline(&line, &size, file) == 0)
-			break;
+		if (getline(&line, &size, file) <= 0)
+			continue;
 		/* Find comments */
 		str = strchr(line, '#');
 		if (str)

@@ -83,7 +83,7 @@ int show_pxms(lub_list_t *pxms)
 int pxm_search(lub_list_t *pxms, const char *addr, cpumask_t *cpumask)
 {
 	lub_list_node_t *iter;
-	int maxaddr = 0;
+	size_t maxaddr = 0;
 
 	for (iter = lub_list_iterator_init(pxms); iter;
 		iter = lub_list_iterator_next(iter)) {

@@ -238,6 +238,7 @@ err:
 static void sighandler(int signo)
 {
 	sigterm = 1;
+	signo = signo; /* Happy compiler */
 }
 
 /*--------------------------------------------------------- */

@@ -156,9 +156,6 @@ int main(int argc, char **argv)
 	if (opts->verbose)
 		show_pxms(pxms);
 
-	/* Set period */
-	interval = opts->short_interval;
-
 	/* Main loop */
 	while (!sigterm) {
 		lub_list_node_t *node;
@@ -203,7 +200,7 @@ int main(int argc, char **argv)
 			interval = opts->long_interval;
 		}
 		
-		/* Wait before nex iteration */
+		/* Wait before next iteration */
 		sleep(interval);
 	}
 

@@ -233,7 +233,6 @@ int irq_get_affinity(irq_t *irq)
 	return 0;
 }
 
-
 /* Parse /proc/interrupts to get actual IRQ list */
 int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 {

@@ -130,19 +130,16 @@ static int irq_set_affinity(irq_t *irq, cpumask_t cpumask)
 	if (!(fd = fopen(path, "w")))
 		return -1;
 	cpumask_scnprintf(buf, sizeof(buf), cpumask);
-	fprintf(fd, "%s", buf);
-	fclose(fd);
-
-	/* Check for newly apllied affinity. The affinities for some
-	   IRQ can't be changed. So don't consider such IRQs. The
-	   example is IRQ 0 - timer. */
-	irq_get_affinity(irq);
-	if (!cpus_equal(irq->affinity, cpumask)) {
-		/* Blacklist this IRQ */
+	if ((fprintf(fd, "%s\n", buf) < 0) || (fflush(fd) == EOF)) {
+		/* The affinity for some IRQ can't be changed. So don't
+		   consider such IRQs. The example is IRQ 0 - timer.
+		   Blacklist this IRQ. Note fprintf() without fflush()
+		   will not return I/O error due to buffers. */
 		irq->blacklisted = 1;
 		remove_irq_from_cpu(irq, irq->cpu);
 		printf("Blacklist IRQ %u\n", irq->irq);
 	}
+	fclose(fd);
 
 	return 0;
 }

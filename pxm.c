@@ -112,7 +112,7 @@ int parse_pxm_config(const char *fname, lub_list_t *pxms, lub_list_t *numas)
 	FILE *file;
 	char *line = NULL;
 	size_t size = 0;
-	char *saveptr;
+	char *saveptr = NULL;
 	unsigned int ln = 0; /* Line number */
 	pxm_t *pxm;
 

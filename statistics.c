@@ -34,7 +34,7 @@ void gather_statistics(lub_list_t *cpus, lub_list_t *irqs)
 	unsigned long long l_guest_nice;
 	unsigned long long load_irq, load_all;
 	char *intr_str;
-	char *saveptr;
+	char *saveptr = NULL;
 	unsigned int inum = 0;
 
 	file = fopen("/proc/stat", "r");

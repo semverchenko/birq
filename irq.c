@@ -306,8 +306,8 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 		iter = lub_list_iterator_next(iter);
 		if (!irq->refresh) {
 			lub_list_del(irqs, old_iter);
-			irq_free(irq);
 			printf("Remove IRQ %3d %s\n", irq->irq, STR(irq->desc));
+			irq_free(irq);
 		} else {
 			/* Drop refresh flag for next iteration */
 			irq->refresh = 0;

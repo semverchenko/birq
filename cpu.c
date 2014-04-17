@@ -65,7 +65,7 @@ static void cpu_free(cpu_t *cpu)
    We don't want to use HT for IRQ balancing. */
 static cpu_t * cpu_list_search_ht(lub_list_t *cpus,
 	unsigned int package_id, unsigned int core_id,
-	cpumask_t thread_siblings)
+	cpumask_t *thread_siblings)
 {
 	lub_list_node_t *iter;
 
@@ -75,7 +75,7 @@ static cpu_t * cpu_list_search_ht(lub_list_t *cpus,
 	   two CPUs with the same package and core ids but
 	   has no thread siblings. Don't consider such CPUs as
 	   a hyper threading. */
-	if (cpus_weight(thread_siblings) < 2)
+	if (cpus_weight(*thread_siblings) < 2)
 		return NULL;
 
 	for (iter = lub_list_iterator_init(cpus); iter;
@@ -202,7 +202,8 @@ int scan_cpus(lub_list_t *cpus, int ht)
 		}
 
 		/* Don't use second thread of Hyper Threading */
-		if (!ht && cpu_list_search_ht(cpus, package_id, core_id, thread_siblings))
+		if (!ht && cpu_list_search_ht(cpus, package_id, core_id,
+			&thread_siblings))
 			continue;
 
 		new = cpu_new(id);

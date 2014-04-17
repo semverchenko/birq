@@ -76,7 +76,7 @@ static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
 /* Search for the best CPU. Best CPU is a CPU with minimal load.
    If several CPUs have the same load then the best CPU is a CPU
    with minimal number of assigned IRQs */
-static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t cpumask, float threshold)
+static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t *cpumask, float threshold)
 {
 	lub_list_node_t *iter;
 	lub_list_t * min_cpus = NULL;
@@ -87,7 +87,7 @@ static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t cpumask, float threshold)
 	for (iter = lub_list_iterator_init(cpus); iter;
 		iter = lub_list_iterator_next(iter)) {
 		cpu = (cpu_t *)lub_list_node__get_data(iter);
-		if (!cpu_isset(cpu->id, cpumask))
+		if (!cpu_isset(cpu->id, *cpumask))
 			continue;
 		if (cpu->load >= threshold)
 			continue;
@@ -117,7 +117,7 @@ static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t cpumask, float threshold)
 	return cpu;
 }
 
-static int irq_set_affinity(irq_t *irq, cpumask_t cpumask)
+static int irq_set_affinity(irq_t *irq, cpumask_t *cpumask)
 {
 	char path[PATH_MAX];
 	char buf[NR_CPUS + 1];
@@ -129,7 +129,7 @@ static int irq_set_affinity(irq_t *irq, cpumask_t cpumask)
 	sprintf(path, "%s/%u/smp_affinity", PROC_IRQ, irq->irq);
 	if (!(fd = fopen(path, "w")))
 		return -1;
-	cpumask_scnprintf(buf, sizeof(buf), cpumask);
+	cpumask_scnprintf(buf, sizeof(buf), *cpumask);
 	if ((fprintf(fd, "%s\n", buf) < 0) || (fflush(fd) == EOF)) {
 		/* The affinity for some IRQ can't be changed. So don't
 		   consider such IRQs. The example is IRQ 0 - timer.
@@ -156,7 +156,7 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
 		irq = (irq_t *)lub_list_node__get_data(iter);
 		/* Try to find local CPU to move IRQ to.
 		   The local CPU is CPU with native NUMA node. */
-		cpu = choose_cpu(cpus, irq->local_cpus, threshold);
+		cpu = choose_cpu(cpus, &(irq->local_cpus), threshold);
 		/* If local CPU is not found then try to use
 		   CPU from another NUMA node. It's better then
 		   overloaded CPUs. */
@@ -166,7 +166,7 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
 /*		if (!cpu) {
 			cpumask_t complement;
 			cpus_complement(complement, irq->local_cpus);
-			cpu = choose_cpu(cpus, complement, threshold);
+			cpu = choose_cpu(cpus, &complement, threshold);
 		}
 */
 		if (cpu) {
@@ -192,7 +192,7 @@ int apply_affinity(lub_list_t *balance_irqs)
 		irq = (irq_t *)lub_list_node__get_data(iter);
 		if (!irq->cpu)
 			continue;
-		irq_set_affinity(irq, irq->cpu->cpumask);
+		irq_set_affinity(irq, &(irq->cpu->cpumask));
 	}
 	return 0;
 }

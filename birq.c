@@ -165,8 +165,10 @@ int main(int argc, char **argv)
 
 		t = time(NULL);
 		tmp = localtime(&t);
-		strftime(outstr, sizeof(outstr), "%H:%M:%S", tmp);
-		printf("----[ %s ]----------------------------------------------------------------\n", outstr);
+		if (tmp) {
+			strftime(outstr, sizeof(outstr), "%H:%M:%S", tmp);
+			printf("----[ %s ]----------------------------------------------------------------\n", outstr);
+		}
 
 		/* Rescan PCI devices for new IRQs. */
 		scan_irqs(irqs, balance_irqs, pxms);

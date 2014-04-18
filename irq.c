@@ -98,10 +98,12 @@ int irq_list_free(lub_list_t *irqs)
 static void irq_show(irq_t *irq)
 {
 	char buf[NR_CPUS + 1];
+
 	if (cpus_full(irq->local_cpus))
 		snprintf(buf, sizeof(buf), "*");
 	else
 		cpumask_scnprintf(buf, sizeof(buf), irq->local_cpus);
+	buf[sizeof(buf) - 1] = '\0';
 	printf("IRQ %3d %s [%s] %s\n", irq->irq, buf, STR(irq->type), STR(irq->desc));
 }
 
@@ -139,7 +141,9 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 		return 0;
 	}
 
-	sprintf(path, "%s/%s/local_cpus", SYSFS_PCI_PATH, sysfs_path);
+	snprintf(path, sizeof(path),
+		"%s/%s/local_cpus", SYSFS_PCI_PATH, sysfs_path);
+	path[sizeof(path) - 1] = '\0';
 	if (!(fd = fopen(path, "r")))
 		return -1;
 	if (getline(&str, &sz, fd) < 0) {
@@ -175,7 +179,9 @@ static int parse_sysfs(lub_list_t *irqs, lub_list_t *pxms)
 			continue;
 
 		/* Search for MSI IRQs. Since linux-3.2 */
-		sprintf(path, "%s/%s/msi_irqs", SYSFS_PCI_PATH, dent->d_name);
+		snprintf(path, sizeof(path),
+			"%s/%s/msi_irqs", SYSFS_PCI_PATH, dent->d_name);
+		path[sizeof(path) - 1] = '\0';
 		if ((msi = opendir(path))) {
 			while((ment = readdir(msi))) {
 				if (!strcmp(ment->d_name, ".") ||
@@ -191,7 +197,9 @@ static int parse_sysfs(lub_list_t *irqs, lub_list_t *pxms)
 		}
 
 		/* Try to get IRQ number from irq file */
-		sprintf(path, "%s/%s/irq", SYSFS_PCI_PATH, dent->d_name);
+		snprintf(path, sizeof(path),
+			"%s/%s/irq", SYSFS_PCI_PATH, dent->d_name);
+		path[sizeof(path) - 1] = '\0';
 		if (!(fd = fopen(path, "r")))
 			continue;
 		if (fscanf(fd, "%d", &num) < 0) {
@@ -219,7 +227,9 @@ int irq_get_affinity(irq_t *irq)
 	if (!irq)
 		return -1;
 
-	sprintf(path, "%s/%u/smp_affinity", PROC_IRQ, irq->irq);
+	snprintf(path, sizeof(path),
+		"%s/%u/smp_affinity", PROC_IRQ, irq->irq);
+	path[sizeof(path) - 1] = '\0';
 	if (!(fd = fopen(path, "r")))
 		return -1;
 	if (getline(&str, &sz, fd) < 0) {

@@ -81,6 +81,7 @@ static void show_numa_info(numa_t *numa)
 {
 	char buf[NR_CPUS + 1];
 	cpumask_scnprintf(buf, sizeof(buf), numa->cpumap);
+	buf[sizeof(buf) - 1] = '\0';
 	printf("NUMA node %d cpumap %s\n", numa->id, buf);
 }
 
@@ -109,7 +110,9 @@ int scan_numas(lub_list_t *numas)
 	cpumask_t cpumap;
 
 	for (id = 0; id < NR_NUMA_NODES; id++) {
-		sprintf(path, "%s/node%d", SYSFS_NUMA_PATH, id);
+		snprintf(path, sizeof(path),
+			"%s/node%d", SYSFS_NUMA_PATH, id);
+		path[sizeof(path) - 1] = '\0';
 		if (access(path, F_OK))
 			break;
 
@@ -119,8 +122,9 @@ int scan_numas(lub_list_t *numas)
 		}
 
 		/* Get NUMA node cpumap */
-		sprintf(path, "%s/node%d/cpumap",
-			SYSFS_NUMA_PATH, id);
+		snprintf(path, sizeof(path),
+			"%s/node%d/cpumap", SYSFS_NUMA_PATH, id);
+		path[sizeof(path) - 1] = '\0';
 		if ((fd = fopen(path, "r"))) {
 			if (getline(&str, &sz, fd) >= 0)
 				cpumask_parse_user(str, strlen(str), cpumap);

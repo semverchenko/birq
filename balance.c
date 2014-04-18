@@ -126,10 +126,13 @@ static int irq_set_affinity(irq_t *irq, cpumask_t *cpumask)
 	if (!irq)
 		return -1;
 
-	sprintf(path, "%s/%u/smp_affinity", PROC_IRQ, irq->irq);
+	snprintf(path, sizeof(path),
+		"%s/%u/smp_affinity", PROC_IRQ, irq->irq);
+	path[sizeof(path) - 1] = '\0';
 	if (!(fd = fopen(path, "w")))
 		return -1;
 	cpumask_scnprintf(buf, sizeof(buf), *cpumask);
+	buf[sizeof(buf) - 1] = '\0';
 	if ((fprintf(fd, "%s\n", buf) < 0) || (fflush(fd) == EOF)) {
 		/* The affinity for some IRQ can't be changed. So don't
 		   consider such IRQs. The example is IRQ 0 - timer.

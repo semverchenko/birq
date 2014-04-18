@@ -134,6 +134,7 @@ static void show_cpu_info(cpu_t *cpu)
 {
 	char buf[NR_CPUS + 1];
 	cpumask_scnprintf(buf, sizeof(buf), cpu->cpumask);
+	buf[sizeof(buf) - 1] = '\0';
 	printf("CPU %d package %d core %d mask %s\n", cpu->id, cpu->package_id, cpu->core_id, buf);
 }
 
@@ -164,13 +165,16 @@ int scan_cpus(lub_list_t *cpus, int ht)
 	cpumask_t thread_siblings;
 
 	for (id = 0; id < NR_CPUS; id++) {
-		sprintf(path, "%s/cpu%d", SYSFS_CPU_PATH, id);
+		snprintf(path, sizeof(path), "%s/cpu%d", SYSFS_CPU_PATH, id);
+		path[sizeof(path) - 1] = '\0';
 		if (access(path, F_OK))
 			break;
 
 		/* Try to get package_id */
-		sprintf(path, "%s/cpu%d/topology/physical_package_id",
+		snprintf(path, sizeof(path),
+			"%s/cpu%d/topology/physical_package_id",
 			SYSFS_CPU_PATH, id);
+		path[sizeof(path) - 1] = '\0';
 		if (!(fd = fopen(path, "r")))
 			continue;
 		if (fscanf(fd, "%u", &package_id) < 0) {
@@ -180,8 +184,9 @@ int scan_cpus(lub_list_t *cpus, int ht)
 		fclose(fd);
 
 		/* Try to get core_id */
-		sprintf(path, "%s/cpu%d/topology/core_id",
+		snprintf(path, sizeof(path), "%s/cpu%d/topology/core_id",
 			SYSFS_CPU_PATH, id);
+		path[sizeof(path) - 1] = '\0';
 		if (!(fd = fopen(path, "r")))
 			continue;
 		if (fscanf(fd, "%u", &core_id) < 0) {
@@ -193,8 +198,9 @@ int scan_cpus(lub_list_t *cpus, int ht)
 		/* Get thread siblings */
 		cpus_clear(thread_siblings);
 		cpu_set(id, thread_siblings);
-		sprintf(path, "%s/cpu%d/topology/thread_siblings",
+		snprintf(path, sizeof(path), "%s/cpu%d/topology/thread_siblings",
 			SYSFS_CPU_PATH, id);
+		path[sizeof(path) - 1] = '\0';
 		if ((fd = fopen(path, "r"))) {
 			if (getline(&str, &sz, fd) >= 0)
 				cpumask_parse_user(str, strlen(str), thread_siblings);

@@ -64,6 +64,7 @@ static void show_pxm_info(pxm_t *pxm)
 		snprintf(buf, sizeof(buf), "*");
 	else
 		cpumask_scnprintf(buf, sizeof(buf), pxm->cpumask);
+	buf[sizeof(buf) - 1] = '\0';
 	printf("PXM: %s cpumask %s\n", pxm->addr, buf);
 }
 

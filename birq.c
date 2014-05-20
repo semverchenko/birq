@@ -365,7 +365,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 				opts->long_interval = val;
 			}
 			break;
-		case 'c':
+		case 's':
 			if (!strcmp(optarg, "max"))
 				opts->strategy = BIRQ_CHOOSE_MAX;
 			else if (!strcmp(optarg, "min"))
@@ -426,6 +426,6 @@ static void help(int status, const char *argv0)
 		printf("\t-t <float>, --threshold=<float>\tThreshold to consider CPU is overloaded, in percents.\n");
 		printf("\t-i <sec>, --short-interval=<sec>\tShort iteration interval.\n");
 		printf("\t-I <sec>, --long-interval=<sec>\tLong iteration interval.\n");
-		printf("\t-c <strategy>, --choose=<strategy>\tStrategy to choose IRQ to move (min/max/rnd).\n");
+		printf("\t-s <strategy>, --strategy=<strategy>\tStrategy to choose IRQ to move (min/max/rnd).\n");
 	}
 }

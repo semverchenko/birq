@@ -261,13 +261,16 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 		num = strtoul(str, &endptr, 10);
 		if (endptr == str)
 			continue;
-		
+
+		/* Search for IRQ within list of known IRQs */
 		if (!(irq = irq_list_search(irqs, num))) {
 			new = 1;
 			irq = irq_list_add(irqs, num);
 		}
 
-		/* Set refresh flag because IRQ was found */
+		/* Set refresh flag because IRQ was found.
+		 * It's used to find out disappeared IRQs.
+		 */
 		irq->refresh = 1;
 
 		/* Doesn't refresh info for blacklisted IRQs */
@@ -306,7 +309,7 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 	free(str);
 	fclose(fd);
 
-	/* Remove disapeared IRQs */
+	/* Remove disappeared IRQs */
 	iter = lub_list_iterator_init(irqs);
 	while(iter) {
 		irq_t *irq;

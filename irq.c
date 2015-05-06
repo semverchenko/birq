@@ -276,7 +276,7 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 		/* Doesn't refresh info for blacklisted IRQs */
 		if (irq->blacklisted)
 			continue;
-
+	
 		/* Find IRQ type - first non-digital and non-space */
 		while (*endptr && !isalpha(*endptr))
 			endptr++;

@@ -175,6 +175,8 @@ int main(int argc, char **argv)
 		scan_irqs(irqs, balance_irqs, pxms);
 		if (opts->verbose)
 			irq_list_show(irqs);
+		/* Link IRQs to CPUs due to real current smp affinity. */
+		link_irqs_to_cpus(cpus, irqs);
 
 		/* Gather statistics on CPU load and number of interrupts. */
 		gather_statistics(cpus, irqs);

@@ -37,7 +37,7 @@ static int dec_weight(cpu_t *cpu, int value)
 }
 
 /* Remove IRQ from specified CPU */
-static int remove_irq_from_cpu(irq_t *irq, cpu_t *cpu)
+int remove_irq_from_cpu(irq_t *irq, cpu_t *cpu)
 {
 	lub_list_node_t *node;
 
@@ -55,8 +55,9 @@ static int remove_irq_from_cpu(irq_t *irq, cpu_t *cpu)
 }
 
 /* Move IRQ to specified CPU. Remove IRQ from the IRQ list
-   of old CPU. */
-static int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
+ * of old CPU.
+ */
+int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
 {
 	if (!irq || !cpu)
 		return -1;

@@ -13,9 +13,53 @@
 #include "statistics.h"
 #include "cpu.h"
 #include "irq.h"
+#include "balance.h"
+
+/* The setting of smp affinity is not reliable due to problems with some
+ * APIC hw/driver. So we need to relink IRQs to CPUs on each iteration.
+ * The linkage is based on current smp affinity value.
+ */
+void link_irqs_to_cpus(lub_list_t *cpus, lub_list_t *irqs)
+{
+	lub_list_node_t *iter;
+
+	/* Clear all CPU's irq lists. These lists are probably out of date. */
+	for (iter = lub_list_iterator_init(cpus); iter;
+		iter = lub_list_iterator_next(iter)) {
+		cpu_t *cpu = (cpu_t *)lub_list_node__get_data(iter);
+		lub_list_node_t *node;
+		while ((node = lub_list__get_tail(cpu->irqs))) {
+			lub_list_del(cpu->irqs, node);
+			lub_list_node_free(node);
+		}
+	}
+
+	/* Iterate through IRQ list */
+	for (iter = lub_list_iterator_init(irqs); iter;
+		iter = lub_list_iterator_next(iter)) {
+		irq_t *irq = (irq_t *)lub_list_node__get_data(iter);
+		int cpu_num;
+		cpu_t *cpu;
+
+		/* Ignore blacklisted IRQs */
+		if (irq->blacklisted)
+			continue;
+		/* Ignore IRQs with multi-affinity. */
+		if (cpus_weight(irq->affinity) > 1)
+			continue;
+
+		cpu_num = first_cpu(irq->affinity);
+		if (NR_CPUS == cpu_num) /* Something went wrong. No bits set. */
+			continue;
+		if (!(cpu = cpu_list_search(cpus, cpu_num)))
+			continue;
+		move_irq_to_cpu(irq, cpu);
+	}
+}
 
 /* Gather load statistics for CPUs and number of interrupts
-   for current iteration. */
+ * for current iteration.
+ */
 void gather_statistics(lub_list_t *cpus, lub_list_t *irqs)
 {
 	FILE *file;

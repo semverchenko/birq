@@ -300,7 +300,13 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 		 * switched to new state).
 		 */
 		irq_get_affinity(irq);
+		/* If affinity uses more than one CPU then consider IRQ as new one.
+		 * It's not normal state for really non-new IRQs.
+		 */
+		if (cpus_weight(irq->affinity) > 1)
+			new = 1;
 
+		/* Add new IRQs to list of IRQs to balance. */
 		if (new) {
 			/* By default all CPUs are local for IRQ. Real local
 			   CPUs will be find while sysfs scan. */

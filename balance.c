@@ -9,6 +9,8 @@
 #include <dirent.h>
 #include <limits.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "statistics.h"
 #include "cpu.h"
@@ -122,7 +124,7 @@ static int irq_set_affinity(irq_t *irq, cpumask_t *cpumask)
 {
 	char path[PATH_MAX];
 	char buf[NR_CPUS + 1];
-	FILE *fd;
+	int f;
 
 	if (!irq)
 		return -1;
@@ -130,11 +132,11 @@ static int irq_set_affinity(irq_t *irq, cpumask_t *cpumask)
 	snprintf(path, sizeof(path),
 		"%s/%u/smp_affinity", PROC_IRQ, irq->irq);
 	path[sizeof(path) - 1] = '\0';
-	if (!(fd = fopen(path, "w")))
+	if ((f = open(path, O_WRONLY | O_SYNC)) < 0)
 		return -1;
 	cpumask_scnprintf(buf, sizeof(buf), *cpumask);
 	buf[sizeof(buf) - 1] = '\0';
-	if ((fprintf(fd, "%s\n", buf) < 0) || (fflush(fd) == EOF)) {
+	if (write(f, buf, strlen(buf)) < 0) {
 		/* The affinity for some IRQ can't be changed. So don't
 		   consider such IRQs. The example is IRQ 0 - timer.
 		   Blacklist this IRQ. Note fprintf() without fflush()
@@ -143,7 +145,7 @@ static int irq_set_affinity(irq_t *irq, cpumask_t *cpumask)
 		remove_irq_from_cpu(irq, irq->cpu);
 		printf("Blacklist IRQ %u\n", irq->irq);
 	}
-	fclose(fd);
+	close(f);
 
 	return 0;
 }

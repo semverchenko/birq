@@ -181,12 +181,10 @@ int main(int argc, char **argv)
 		/* Gather statistics on CPU load and number of interrupts. */
 		gather_statistics(cpus, irqs);
 		show_statistics(cpus, opts->verbose);
-		/* Choose IRQ to move to another CPU.
-		   Don't choose IRQ if we already have new IRQs to balance */
-		if (lub_list_len(balance_irqs) == 0) {
-			choose_irqs_to_move(cpus, balance_irqs,
-				opts->threshold, opts->strategy);
-		}
+		/* Choose IRQ to move to another CPU. */
+		choose_irqs_to_move(cpus, balance_irqs,
+			opts->threshold, opts->strategy);
+
 		/* If nothing to balance */
 		if (lub_list_len(balance_irqs) != 0) {
 			/* Set short interval to make balancing faster. */

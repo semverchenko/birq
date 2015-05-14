@@ -13,4 +13,7 @@
    In percents, float value. Can't be greater than 100.0 */
 #define BIRQ_DEFAULT_THRESHOLD 99.0
 
+/* Load limit. Don't move IRQs to CPUs loaded more than this limit. */
+#define BIRQ_DEFAULT_LOAD_LIMIT 95.0
+
 #endif

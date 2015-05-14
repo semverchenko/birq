@@ -54,6 +54,7 @@ struct options {
 	int debug; /* Don't daemonize in debug mode */
 	int log_facility;
 	float threshold;
+	float load_limit;
 	int verbose;
 	int ht;
 	unsigned int long_interval;
@@ -254,6 +255,7 @@ static struct options *opts_init(void)
 	opts->pxm = NULL;
 	opts->log_facility = LOG_DAEMON;
 	opts->threshold = BIRQ_DEFAULT_THRESHOLD;
+	opts->load_limit = BIRQ_DEFAULT_LOAD_LIMIT;
 	opts->verbose = 0;
 	opts->ht = 0;
 	opts->long_interval = BIRQ_LONG_INTERVAL;
@@ -278,7 +280,7 @@ static void opts_free(struct options *opts)
 /* Parse command line options */
 static int opts_parse(int argc, char *argv[], struct options *opts)
 {
-	static const char *shortopts = "hp:dO:t:vri:I:s:x:";
+	static const char *shortopts = "hp:dO:t:l:vri:I:s:x:";
 #ifdef HAVE_GETOPT_H
 	static const struct option longopts[] = {
 		{"help",		0, NULL, 'h'},
@@ -286,6 +288,7 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		{"debug",		0, NULL, 'd'},
 		{"facility",		1, NULL, 'O'},
 		{"threshold",		1, NULL, 't'},
+		{"load-limit",		1, NULL, 't'},
 		{"verbose",		0, NULL, 'v'},
 		{"ht",			0, NULL, 'r'},
 		{"short-interval",	1, NULL, 'i'},
@@ -347,6 +350,21 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 			}
 			}
 			break;
+		case 'l':
+			{
+			char *endptr;
+			float limit;
+			limit = strtof(optarg, &endptr);
+			if (endptr == optarg)
+				limit = opts->load_limit;
+			opts->load_limit = limit;
+			if (limit > 100.00) {
+				fprintf(stderr, "Error: Illegal load limit value %s.\n", optarg);
+				help(-1, argv[0]);
+				exit(-1);
+			}
+			}
+			break;
 		case 'i':
 			{
 			char *endptr;
@@ -389,6 +407,13 @@ static int opts_parse(int argc, char *argv[], struct options *opts)
 		}
 	}
 
+	/* Check threshold and load limit */
+	if (opts->load_limit > opts->threshold) {
+		fprintf(stderr, "Error: The load limit is greater than threshold.\n");
+		help(-1, argv[0]);
+		exit(-1);
+	}
+
 	return 0;
 }
 
@@ -416,16 +441,19 @@ static void help(int status, const char *argv0)
 		printf("Usage   : %s [options]\n", name);
 		printf("Daemon to balance IRQs.\n");
 		printf("Options :\n");
-		printf("\t-h, --help\tPrint this help.\n");
-		printf("\t-d, --debug\tDebug mode. Don't daemonize.\n");
-		printf("\t-v, --verbose\tBe verbose.\n");
-		printf("\t-r, --ht\tEnable hyper-threading. Not recommended.\n");
-		printf("\t-p <path>, --pid=<path>\tFile to save daemon's PID to.\n");
-		printf("\t-x <path>, --pxm=<path>\tProximity config file.\n");
-		printf("\t-O, --facility\tSyslog facility. Default is DAEMON.\n");
-		printf("\t-t <float>, --threshold=<float>\tThreshold to consider CPU is overloaded, in percents.\n");
-		printf("\t-i <sec>, --short-interval=<sec>\tShort iteration interval.\n");
-		printf("\t-I <sec>, --long-interval=<sec>\tLong iteration interval.\n");
-		printf("\t-s <strategy>, --strategy=<strategy>\tStrategy to choose IRQ to move (min/max/rnd).\n");
+		printf("\t-h, --help Print this help.\n");
+		printf("\t-d, --debug Debug mode. Don't daemonize.\n");
+		printf("\t-v, --verbose Be verbose.\n");
+		printf("\t-r, --ht Enable hyper-threading. Not recommended.\n");
+		printf("\t-p <path>, --pid=<path> File to save daemon's PID to.\n");
+		printf("\t-x <path>, --pxm=<path> Proximity config file.\n");
+		printf("\t-O, --facility Syslog facility. Default is DAEMON.\n");
+		printf("\t-t <float>, --threshold=<float> Threshold to consider CPU is overloaded, in percents. Default threhold is %.2f.\n",
+			BIRQ_DEFAULT_THRESHOLD);
+		printf("\t-l <float>, --load-limit=<float> Don't move IRQs to CPUs loaded more than this limit, in percents. Default limit is %.2f.\n",
+			BIRQ_DEFAULT_LOAD_LIMIT);
+		printf("\t-i <sec>, --short-interval=<sec> Short iteration interval.\n");
+		printf("\t-I <sec>, --long-interval=<sec> Long iteration interval.\n");
+		printf("\t-s <strategy>, --strategy=<strategy> Strategy to choose IRQ to move (min/max/rnd).\n");
 	}
 }

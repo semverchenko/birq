@@ -98,13 +98,16 @@ int irq_list_free(lub_list_t *irqs)
 static void irq_show(irq_t *irq)
 {
 	char buf[NR_CPUS + 1];
+	char buf2[NR_CPUS + 1];
 
 	if (cpus_full(irq->local_cpus))
 		snprintf(buf, sizeof(buf), "*");
 	else
 		cpumask_scnprintf(buf, sizeof(buf), irq->local_cpus);
 	buf[sizeof(buf) - 1] = '\0';
-	printf("IRQ %3d %s [%s] %s\n", irq->irq, buf, STR(irq->type), STR(irq->desc));
+	cpumask_scnprintf(buf2, sizeof(buf2), irq->affinity);
+	buf2[sizeof(buf2) - 1] = '\0';
+	printf("IRQ %3d [%s] [%s] [%s] %s\n", irq->irq, buf, buf2, STR(irq->type), STR(irq->desc));
 }
 
 /* Show IRQ list */

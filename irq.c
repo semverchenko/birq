@@ -255,6 +255,7 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 	size_t sz;
 	irq_t *irq;
 	lub_list_node_t *iter;
+	int new_irq_num = 0;
 
 	if (!(fd = fopen(PROC_INTERRUPTS, "r")))
 		return -1;
@@ -268,7 +269,12 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 		/* Search for IRQ within list of known IRQs */
 		if (!(irq = irq_list_search(irqs, num))) {
 			new = 1;
+			new_irq_num++;
 			irq = irq_list_add(irqs, num);
+			/* By default all CPUs are local for IRQ. Real local
+			 * CPUs will be find while sysfs scan.
+			 */
+			cpus_setall(irq->local_cpus);
 		}
 
 		/* Set refresh flag because IRQ was found.
@@ -303,21 +309,23 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 		 * switched to new state).
 		 */
 		irq_get_affinity(irq);
+
+		/* Print info about new IRQ. */
+		if (new)
+			printf("Add IRQ %3d %s\n", irq->irq, STR(irq->desc));
+
 		/* If affinity uses more than one CPU then consider IRQ as new one.
 		 * It's not normal state for really non-new IRQs.
 		 */
-		if (cpus_weight(irq->affinity) > 1)
-			new = 1;
+		if (cpus_weight(irq->affinity) <= 1)
+			continue;
 
-		/* Add new IRQs to list of IRQs to balance. */
-		if (new) {
-			/* By default all CPUs are local for IRQ. Real local
-			 * CPUs will be find while sysfs scan.
-			 */
-			cpus_setall(irq->local_cpus);
-			lub_list_add(balance_irqs, irq);
-			printf("Add IRQ %3d %s\n", irq->irq, STR(irq->desc));
-		}
+		/* Don't balance IRQs with 0 number of interrupts */
+		if ((irq->intr - irq->old_intr) <= 0)
+			continue;
+
+		/* Add IRQs to list of IRQs to balance. */
+		lub_list_add(balance_irqs, irq);
 	}
 	free(str);
 	fclose(fd);
@@ -341,9 +349,10 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 	}
 
 	/* No new IRQs were found. It doesn't need to scan sysfs. */
-	if (lub_list_len(balance_irqs) == 0)
+	if (new_irq_num == 0)
 		return 0;
 	/* Add IRQ info from sysfs */
+	printf("New IRQs: %d. Scanning sysfs...\n", new_irq_num);
 	parse_sysfs(irqs, pxms);
 
 	return 0;

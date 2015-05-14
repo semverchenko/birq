@@ -79,7 +79,7 @@ int move_irq_to_cpu(irq_t *irq, cpu_t *cpu)
 /* Search for the best CPU. Best CPU is a CPU with minimal load.
    If several CPUs have the same load then the best CPU is a CPU
    with minimal number of assigned IRQs */
-static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t *cpumask, float threshold)
+static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t *cpumask, float load_limit)
 {
 	lub_list_node_t *iter;
 	lub_list_t * min_cpus = NULL;
@@ -92,7 +92,7 @@ static cpu_t *choose_cpu(lub_list_t *cpus, cpumask_t *cpumask, float threshold)
 		cpu = (cpu_t *)lub_list_node__get_data(iter);
 		if (!cpu_isset(cpu->id, *cpumask))
 			continue;
-		if (cpu->load >= threshold)
+		if (cpu->load >= load_limit)
 			continue;
 		if ((!min_cpus) || (cpu->load < min_load)) {
 			min_load = cpu->load;
@@ -151,7 +151,7 @@ static int irq_set_affinity(irq_t *irq, cpumask_t *cpumask)
 }
 
 /* Find best CPUs for IRQs need to be balanced. */
-int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
+int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float load_limit)
 {
 	lub_list_node_t *iter;
 
@@ -162,7 +162,7 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
 		irq = (irq_t *)lub_list_node__get_data(iter);
 		/* Try to find local CPU to move IRQ to.
 		   The local CPU is CPU with native NUMA node. */
-		cpu = choose_cpu(cpus, &(irq->local_cpus), threshold);
+		cpu = choose_cpu(cpus, &(irq->local_cpus), load_limit);
 		/* If local CPU is not found then try to use
 		   CPU from another NUMA node. It's better then
 		   overloaded CPUs. */
@@ -172,7 +172,7 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float threshold)
 /*		if (!cpu) {
 			cpumask_t complement;
 			cpus_complement(complement, irq->local_cpus);
-			cpu = choose_cpu(cpus, &complement, threshold);
+			cpu = choose_cpu(cpus, &complement, load_limit);
 		}
 */
 		if (cpu) {

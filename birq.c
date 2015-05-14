@@ -186,12 +186,12 @@ int main(int argc, char **argv)
 		choose_irqs_to_move(cpus, balance_irqs,
 			opts->threshold, opts->strategy);
 
-		/* If nothing to balance */
+		/* Balance IRQs */
 		if (lub_list_len(balance_irqs) != 0) {
 			/* Set short interval to make balancing faster. */
 			interval = opts->short_interval;
 			/* Choose new CPU for IRQs need to be balanced. */
-			balance(cpus, balance_irqs, opts->threshold);
+			balance(cpus, balance_irqs, opts->load_limit);
 			/* Write new values to /proc/irq/<IRQ>/smp_affinity */
 			apply_affinity(balance_irqs);
 			/* Free list of balanced IRQs */

@@ -107,7 +107,7 @@ static void irq_show(irq_t *irq)
 	buf[sizeof(buf) - 1] = '\0';
 	cpumask_scnprintf(buf2, sizeof(buf2), irq->affinity);
 	buf2[sizeof(buf2) - 1] = '\0';
-	printf("IRQ %3d [%s] [%s] [%s] %s\n", irq->irq, buf, buf2, STR(irq->type), STR(irq->desc));
+	printf("IRQ %3d [%s] [%s] [%s] %s %llu %llu\n", irq->irq, buf, buf2, STR(irq->type), STR(irq->desc), irq->old_intr, irq->intr);
 }
 
 /* Show IRQ list */

@@ -321,7 +321,7 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 			continue;
 
 		/* Don't balance IRQs with 0 number of interrupts */
-		if ((irq->intr - irq->old_intr) <= 0)
+		if (irq->intr == 0)
 			continue;
 
 		/* Add IRQs to list of IRQs to balance. */

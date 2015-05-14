@@ -312,8 +312,6 @@ int scan_irqs(lub_list_t *irqs, lub_list_t *balance_irqs, lub_list_t *pxms)
 			 * CPUs will be find while sysfs scan.
 			 */
 			cpus_setall(irq->local_cpus);
-			/* Don't consider old affinity for new IRQs */
-			cpus_setall(irq->affinity);
 			lub_list_add(balance_irqs, irq);
 			printf("Add IRQ %3d %s\n", irq->irq, STR(irq->desc));
 		}

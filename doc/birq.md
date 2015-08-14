@@ -15,7 +15,7 @@ There are two well known balancer projects:
 * irqbalance <https://github.com/Irqbalance/irqbalance>
 * irqd <https://github.com/vaesoo/irqd>
 
-The both projects have an advantages and disadvantages. I have used an irqbalance for a long time. It's good project but now the accumulated problems make me to start new balancer project. I will consider some irqd and irqbalace problems later but firstly I want to note two important problems with IRQ balancing that can't be solved now by any balancer including birq.
+The both projects have an advantages and disadvantages. I have used an irqbalance for a long time. It's good project but now the accumulated problems make me to start new balancer project. I will consider some irqd and irqbalace problems later but firstly I want to note several important problems with IRQ balancing that can't be solved now by any balancer including birq.
 
 # BIRQ related links
 
@@ -45,7 +45,15 @@ The next unsolved problem for IRQ balancing is IRQ sticking. When CPU has a real
 
 For balancer it means the wrong statistics about CPU load and IRQ affinity. The balancer supposes the IRQ has a new affinity but actually softirq use old CPU. The old CPU has a high load but new CPU has no additional load at all. The deceived balancer will move IRQs away from old CPU again and again. But nothing happens. Sometimes the experiments can show the empty (no IRQs) CPU with 100% load. After a while (can be a minutes) the IRQs will be really moved to another CPU. The old CPU load will become 0% but some another CPU load probably will become 100% because balancer moves IRQs to minimally loaded CPU. Often the minimally loaded CPU is the same for the series of CPU movements because moving of sticking IRQs has no effect on target CPU load. The CPU with 100% load has a great chance to make its IRQs sticking. The situation will repeat again and again.
 
-It's no way to formally determine IRQ sticking. And I don't know the way to unstick IRQs.
+It's no way to formally determine IRQ sticking. And I don't know the way to unstick IRQs. It's a problem of network interface driver and a kernel.
+
+# Initial IRQ allocation
+
+The Linux kernel has a problem with initial IRQ allocation. While system initialization Linux puts IRQs to first CPU. CPU has 256 slots for IRQ handling. Some of this slots are used by service IRQs. So when the all the slots are busy Linux will use second CPU. And so on. If CPU IRQ table is full then you can't move another IRQ to this CPU (there is no free slot for it). The second problem is the IRQ affinity settings will be applied when the IRQ really arrived. Before this moment the IRQ is located within old CPU table and is not removed from it. In the same time it will reserve a slot within new CPU table. So the moving of the inactive IRQs can pollute the CPU's tables. 
+
+So the birq tries to minimize the IRQ moving. The birq (since birq-1.2.0) doesn't change initial affinity for all IRQs on start (The old birq did it). It gets the current IRQ affinity. It can change the IRQ affinity if CPU is overloaded and if IRQ has at least one interrupt while current interval (iteration period). I.e. it allows to move only active IRQs.
+
+In our test we had a CPUs with busy IRQ tables. The most IRQs were passive and CPU was idle but we can't move active IRQs to this idle CPU bacause its IRQ slots were busy. This is the serious Linux kernel problem for big platforms with a large amount of LAN interfaces. Note each interface has a several queues. Each queue has its own IRQ.
 
 # Another problems and peculiarities
 
@@ -57,11 +65,13 @@ The irqbalance rely on interrupt statistics, suppose the IRQs with greater numbe
 
 The irqbalance classifies IRQs (devices) and use different balance level for different device classes. As a result some devices have affinity to several CPUs at the same time. It's not good because most of interrupt controllers actually use a single CPU anyway. It leads to wrong weight calculations.
 
-The irqbalance consider Hyper Threading as a real processor. Two threads of one CPU core have a single execution core so the threads have a great influence to each other. The threads can't be considered as independent CPUs.
+# Hyper Threading
+
+The early birq releases suppose that HT is useless feature for IRQ balancing and so the best behaviour is to use only first thread of HT for IRQs. But the real tests show the using of both HT threads speeds up an IRQ processing. For our tests we have used platforms with a big amount of LAN interfaces and our system was highly loaded. When I have disabled a HT (use the first HT thread of CPU and don't use second HT thread of this CPU) then the summary speed was slower. And we didn't see any examples when the system with HT is slower than system without HT using. The HT is recommended to use.
+
+Note current birq with disabled HT will get current affinities. The current affinity mostly use HT. Birq will not change this affinity unless the correspondent CPU is overloaded and IRQ is active. So people think the disabling of HT is not working. Really it works. It will move IRQ to the first HT thread only. But second threads already have IRQs on birq start.
 
 # Some BIRQ features
-
-By default BIRQ doesn't use the second threads of Hyper Threading. These logical CPUs are ignored. May be some day birq will use Hyper Threading to share load between threads within single CPU core. But I think second thread ignore is better than using threads independently. 
 
 The birq gathers statistics of CPU utilization and choose the most overloaded one. Then it choose the IRQ to move away from overloaded CPU. The balancer can use three different strategies to choose IRQ. The strategies are:
 
@@ -73,11 +83,11 @@ The experiments show the most effective strategy is random choose. Now it's defa
 
 The birq doesn't use device classification. All IRQs are equals.
 
-Actually the birq balancing is not perfect of cause. But I think the perfect balancing is not possible because of useless kernel statistics and IRQ sticking.
+Actually the birq balancing is not perfect. But I think the perfect balancing is not possible because of useless kernel statistics and IRQ sticking.
 
 # Usage
 
-The current version of birq is 1.1.2.
+The current version of birq is 1.2.0.
 
 ```
 $ birq [options]
@@ -91,7 +101,8 @@ Options :
 * **-r, --ht** - Enable Hyper Threading support. The second threads will be considered as a real CPU. Not recommended.
 * **-p &lt;path&gt;, --pid=&lt;path&gt;** - File to save daemon's PID to.
 * **-O &lt;facility&gt;, --facility=&lt;facility&gt;** - Syslog facility. Default is DAEMON.
-* **-t &lt;float&gt;, --threshold=&lt;float&gt;** - Threshold to consider CPU is overloaded, in percents. Float value.
+* **-t &lt;float&gt;, --threshold=&lt;float&gt;** - Threshold to consider CPU is overloaded, in percents. Float value. Default threshold is 99%.
+* **-l &lt;float&gt;, --load-limit=&lt;float&gt;** - Don't move IRQs to CPUs loaded more than this limit, in percents. Default limit is 95%.
 * **-i &lt;sec&gt;, --short-interval=&lt;sec&gt;** - Short iteration interval in seconds. It will be used when the overloaded CPU is found. Default is 2 seconds.
 * **-I &lt;sec&gt;, --long-interval=&lt;sec&gt;** - Long iteration interval in seconds. It will be used when there is no overloaded CPUs. Default is 5 seconds.
 * **-s &lt;strategy&gt;, --strategy=&lt;strategy&gt;** - Strategy for choosing IRQ to move. The possible values are "min", "max", "rnd". The default is "rnd". Note the birq-1.0.0 uses **-c, --choose** option name for the same functionality.

@@ -444,7 +444,7 @@ static void help(int status, const char *argv0)
 		printf("\t-h, --help Print this help.\n");
 		printf("\t-d, --debug Debug mode. Don't daemonize.\n");
 		printf("\t-v, --verbose Be verbose.\n");
-		printf("\t-r, --ht Enable hyper-threading. Not recommended.\n");
+		printf("\t-r, --ht Enable Hyper Threading.\n");
 		printf("\t-p <path>, --pid=<path> File to save daemon's PID to.\n");
 		printf("\t-x <path>, --pxm=<path> Proximity config file.\n");
 		printf("\t-O, --facility Syslog facility. Default is DAEMON.\n");

@@ -171,6 +171,7 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float load_limit)
 		   be held by QPI-like interfaces through local CPUs. */
 /*		if (!cpu) {
 			cpumask_t complement;
+			cpus_init(complement);
 			cpus_complement(complement, irq->local_cpus);
 			cpu = choose_cpu(cpus, &complement, load_limit);
 		}

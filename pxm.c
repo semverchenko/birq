@@ -22,6 +22,7 @@ static pxm_t * pxm_new(const char *addr)
 	if (!(new = malloc(sizeof(*new))))
 		return NULL;
 	new->addr = strdup(addr);
+	cpus_init(new->cpumask);
 	cpus_clear(new->cpumask);
 
 	return new;
@@ -33,6 +34,7 @@ static void pxm_free(pxm_t *pxm)
 		return;
 	if (pxm->addr)
 		free(pxm->addr);
+	cpus_free(pxm->cpumask);
 	free(pxm);
 }
 
@@ -129,6 +131,7 @@ int parse_pxm_config(const char *fname, lub_list_t *pxms, lub_list_t *numas)
 		char *pxm_cmd = NULL;
 		char *pxm_pxm = NULL;
 		cpumask_t cpumask;
+		cpus_init(cpumask);
 
 		ln++; /* Next line */
 		if (getline(&line, &size, file) <= 0)
@@ -196,6 +199,7 @@ int parse_pxm_config(const char *fname, lub_list_t *pxms, lub_list_t *numas)
 		cpus_clear(pxm->cpumask);
 		cpus_or(pxm->cpumask, pxm->cpumask, cpumask);
 		pxm_list_add(pxms, pxm);
+		cpus_free(cpumask);
 	}
 
 	fclose(file);

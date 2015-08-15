@@ -42,6 +42,7 @@ static cpu_t * cpu_new(unsigned int id)
 	new->old_load = 0;
 	new->load = 0;
 	new->irqs = lub_list_new(irq_list_compare);
+	cpus_init(new->cpumask);
 	cpus_clear(new->cpumask);
 	cpu_set(new->id, new->cpumask);
 
@@ -57,6 +58,7 @@ static void cpu_free(cpu_t *cpu)
 		lub_list_node_free(node);
 	}
 	lub_list_free(cpu->irqs);
+	cpus_free(cpu->cpumask);
 	free(cpu);
 }
 
@@ -163,6 +165,7 @@ int scan_cpus(lub_list_t *cpus, int ht)
 	char *str = NULL;
 	size_t sz;
 	cpumask_t thread_siblings;
+	cpus_init(thread_siblings);
 
 	for (id = 0; id < NR_CPUS; id++) {
 		snprintf(path, sizeof(path), "%s/cpu%d", SYSFS_CPU_PATH, id);
@@ -217,6 +220,7 @@ int scan_cpus(lub_list_t *cpus, int ht)
 		new->core_id = core_id;
 		cpu_list_add(cpus, new);
 	}
+	cpus_free(thread_siblings);
 	free(str);
 
 	return 0;

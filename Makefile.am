@@ -23,7 +23,10 @@ noinst_HEADERS = \
 	numa.h \
 	statistics.h \
 	balance.h \
-	pxm.h
+	pxm.h \
+	bit_array.h \
+	bit_macros.h \
+	hexio.h
 
 birq_SOURCES = \
 	birq.c \
@@ -33,7 +36,9 @@ birq_SOURCES = \
 	numa.c \
 	statistics.c \
 	balance.c \
-	pxm.c
+	pxm.c \
+	bit_array.c \
+	hexio.c
 
 birq_LDADD = liblub.a
 birq_DEPENDENCIES = liblub.a

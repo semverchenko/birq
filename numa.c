@@ -29,6 +29,7 @@ static numa_t * numa_new(unsigned int id)
 	if (!(new = malloc(sizeof(*new))))
 		return NULL;
 	new->id = id;
+	cpus_init(new->cpumap);
 	cpus_setall(new->cpumap);
 
 	return new;
@@ -36,6 +37,7 @@ static numa_t * numa_new(unsigned int id)
 
 static void numa_free(numa_t *numa)
 {
+	cpus_free(numa->cpumap);
 	free(numa);
 }
 
@@ -108,6 +110,7 @@ int scan_numas(lub_list_t *numas)
 	char *str = NULL;
 	size_t sz;
 	cpumask_t cpumap;
+	cpus_init(cpumap);
 
 	for (id = 0; id < NR_NUMA_NODES; id++) {
 		snprintf(path, sizeof(path),
@@ -134,5 +137,6 @@ int scan_numas(lub_list_t *numas)
 	}
 	free(str);
 
+	cpus_free(cpumap);
 	return 0;
 }

@@ -37,6 +37,8 @@ static irq_t * irq_new(int num)
 	new->intr = 0;
 	new->cpu = NULL;
 	new->weight = 0;
+	cpus_init(new->local_cpus);
+	cpus_init(new->affinity);
 	cpus_setall(new->local_cpus);
 	cpus_clear(new->affinity);
 	new->blacklisted = 0;
@@ -48,6 +50,8 @@ static void irq_free(irq_t *irq)
 {
 	free(irq->type);
 	free(irq->desc);
+	cpus_free(irq->local_cpus);
+	cpus_free(irq->affinity);
 	free(irq);
 }
 
@@ -87,6 +91,8 @@ int irq_list_free(lub_list_t *irqs)
 		irq_t *irq;
 		irq = (irq_t *)lub_list_node__get_data(iter);
 		irq_free(irq);
+		cpus_free(irq->local_cpus);
+		cpus_free(irq->affinity);
 		lub_list_del(irqs, iter);
 		lub_list_node_free(iter);
 	}
@@ -131,8 +137,10 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 	char *str = NULL;
 	size_t sz;
 	cpumask_t local_cpus;
+	cpus_init(local_cpus);
 	irq_t *irq = NULL;
 	cpumask_t cpumask;
+	cpus_init(cpumask);
 
 	irq = irq_list_search(irqs, num);
 	if (!irq)
@@ -140,7 +148,7 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 
 	/* Find proximity in config file. */
 	if (!pxm_search(pxms, sysfs_path, &cpumask)) {
-		irq->local_cpus = cpumask;
+		cpus_copy(irq->local_cpus, cpumask);
 		return 0;
 	}
 
@@ -156,6 +164,8 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 	fclose(fd);
 	cpumask_parse_user(str, strlen(str), local_cpus);
 	cpus_and(irq->local_cpus, irq->local_cpus, local_cpus);
+	cpus_free(local_cpus);
+	cpus_free(cpumask);
 	free(str);
 
 	return 0;

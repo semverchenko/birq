@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h> /* open, write */
 
 #include "statistics.h"
 #include "cpu.h"

@@ -15,8 +15,6 @@ lib_LIBRARIES =
 
 noinst_HEADERS = \
 	birq.h \
-	bitmap.h \
-	non-atomic.h \
 	cpumask.h \
 	irq.h \
 	cpu.h \
@@ -30,7 +28,6 @@ noinst_HEADERS = \
 
 birq_SOURCES = \
 	birq.c \
-	bitmap.c \
 	irq.c \
 	cpu.c \
 	numa.c \

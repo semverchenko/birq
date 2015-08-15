@@ -83,7 +83,6 @@
  */
 
 #include <stdlib.h>
-#include "bitmap.h"
 #include "bit_array.h"
 #include "hexio.h"
 

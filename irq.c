@@ -91,8 +91,6 @@ int irq_list_free(lub_list_t *irqs)
 		irq_t *irq;
 		irq = (irq_t *)lub_list_node__get_data(iter);
 		irq_free(irq);
-		cpus_free(irq->local_cpus);
-		cpus_free(irq->affinity);
 		lub_list_del(irqs, iter);
 		lub_list_node_free(iter);
 	}

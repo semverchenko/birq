@@ -48,6 +48,6 @@ static inline int __first_cpu(const cpumask_t srcp)
 int __next_cpu(int n, const cpumask_t *srcp);
 #define next_cpu(n, src) __next_cpu((n), (src))
 
-#define cpumask_scnprintf(buf, len, src) bitmask_displayhex((buf), (len), (src).bits)
-#define cpumask_parse_user(ubuf, ulen, dst) bitmask_parsehex((ubuf), (dst).bits)
+#define cpumask_scnprintf(buf, len, src) bitmask_scnprintf((buf), (len), (src).bits)
+#define cpumask_parse_user(ubuf, ulen, dst) bitmask_parse_user((ubuf), (ulen), (dst).bits)
 #endif /* CPUMASK_H */

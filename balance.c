@@ -175,6 +175,7 @@ int balance(lub_list_t *cpus, lub_list_t *balance_irqs, float load_limit)
 			cpus_init(complement);
 			cpus_complement(complement, irq->local_cpus);
 			cpu = choose_cpu(cpus, &complement, load_limit);
+			cpus_free(complement);
 		}
 */
 		if (cpu) {

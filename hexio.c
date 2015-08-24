@@ -45,16 +45,13 @@ int64_t next_chunk(const char **buf, size_t *buflen)
 {
 	uint32_t chunk = 0;
 	int h;
-	while (*buflen)
-	{
-		if (**buf == '\0' || **buf == ',')
-		{
+	while (*buflen) {
+		if (**buf == '\0' || **buf == ',') {
 			(*buf)++, (*buflen)--;
 			return chunk;
 		}
 		
-		if (isspace(**buf))
-		{
+		if (isspace(**buf)) {
 			while (isspace(**buf) && *buflen)
 				(*buf)++, (*buflen)--;
 			if (buflen && **buf != '\0')
@@ -80,8 +77,7 @@ int count_chunks(const char *buf, size_t buflen)
 {
 	int chunks = 0;
 	int64_t chunk;
-	while (buflen && *buf != '\0')
-	{
+	while (buflen && *buf != '\0') {
 		if ((chunk = next_chunk(&buf, &buflen)) >= 0)
 			chunks++;
 		else
@@ -104,8 +100,7 @@ int bitmask_parse_user(const char *buf, size_t buflen, BIT_ARRAY *bmp)
 
 	bit_array_clear_all(bmp);
 
-	while (nchunks)
-	{
+	while (nchunks) {
 		chunk = next_chunk(&buf, &buflen);
 		if (chunk < 0)
 			return chunk;

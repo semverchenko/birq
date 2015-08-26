@@ -131,7 +131,6 @@ int parse_pxm_config(const char *fname, lub_list_t *pxms, lub_list_t *numas)
 		char *pxm_cmd = NULL;
 		char *pxm_pxm = NULL;
 		cpumask_t cpumask;
-		cpus_init(cpumask);
 
 		ln++; /* Next line */
 		if (getline(&line, &size, file) <= 0)
@@ -163,6 +162,9 @@ int parse_pxm_config(const char *fname, lub_list_t *pxms, lub_list_t *numas)
 			continue;
 		}
 
+
+		cpus_init(cpumask);
+
 		if (!strcasecmp(pxm_cmd, "cpumask")) {
 			cpumask_parse_user(pxm_pxm, strlen(pxm_pxm),
 				cpumask);
@@ -173,6 +175,7 @@ int parse_pxm_config(const char *fname, lub_list_t *pxms, lub_list_t *numas)
 			if (endptr == pxm_pxm) {
 				fprintf(stderr, "Warning: Wrong NUMA node in "
 					"line %u in %s\n", ln, fname);
+				cpus_free(cpumask);
 				continue;
 			}
 			if (noden == -1) /* Non-NUMA = all CPUs */
@@ -183,6 +186,7 @@ int parse_pxm_config(const char *fname, lub_list_t *pxms, lub_list_t *numas)
 				if (!numa) {
 					fprintf(stderr, "Warning: Wrong NUMA node. Line %u in %s\n",
 						ln, fname);
+					cpus_free(cpumask);
 					continue;
 				}
 				cpus_clear(cpumask);
@@ -191,6 +195,7 @@ int parse_pxm_config(const char *fname, lub_list_t *pxms, lub_list_t *numas)
 		} else {
 			fprintf(stderr, "Warning: Illegal command %u in %s\n",
 				ln, fname);
+			cpus_free(cpumask);
 			continue;
 		}
 

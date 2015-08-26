@@ -135,9 +135,10 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 	char *str = NULL;
 	size_t sz;
 	cpumask_t local_cpus;
-	cpus_init(local_cpus);
 	irq_t *irq = NULL;
 	cpumask_t cpumask;
+
+	cpus_init(local_cpus);
 	cpus_init(cpumask);
 
 	irq = irq_list_search(irqs, num);
@@ -147,16 +148,23 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 	/* Find proximity in config file. */
 	if (!pxm_search(pxms, sysfs_path, &cpumask)) {
 		cpus_copy(irq->local_cpus, cpumask);
+		cpus_free(local_cpus);
+		cpus_free(cpumask);
 		return 0;
 	}
 
 	snprintf(path, sizeof(path),
 		"%s/%s/local_cpus", SYSFS_PCI_PATH, sysfs_path);
 	path[sizeof(path) - 1] = '\0';
-	if (!(fd = fopen(path, "r")))
+	if (!(fd = fopen(path, "r"))){
+		cpus_free(local_cpus);
+		cpus_free(cpumask);
 		return -1;
+	}
 	if (getline(&str, &sz, fd) < 0) {
 		fclose(fd);
+		cpus_free(local_cpus);
+		cpus_free(cpumask);
 		return -1;
 	}
 	fclose(fd);

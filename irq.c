@@ -142,8 +142,11 @@ static int parse_local_cpus(lub_list_t *irqs, const char *sysfs_path,
 	cpus_init(cpumask);
 
 	irq = irq_list_search(irqs, num);
-	if (!irq)
+	if (!irq) {
+		cpus_free(local_cpus);
+		cpus_free(cpumask);
 		return -1;
+	}
 
 	/* Find proximity in config file. */
 	if (!pxm_search(pxms, sysfs_path, &cpumask)) {

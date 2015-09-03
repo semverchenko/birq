@@ -35,11 +35,11 @@ int hex_to_dec(char c)
 	else if (c >= 'A' && c <= 'F')
 		return c - 'A' + 10;
 	else
-		return -EINVAL;
+		return -1;
 }
 
 /*
- * Returns 32-bit token or -EOVERFLOW or -EINVAL in case of error
+ * Returns 32-bit token or -1 in case of error
  */
 int64_t next_chunk(const char **buf, size_t *buflen)
 {
@@ -55,17 +55,17 @@ int64_t next_chunk(const char **buf, size_t *buflen)
 			while (isspace(**buf) && *buflen)
 				(*buf)++, (*buflen)--;
 			if (buflen && **buf != '\0')
-				return -EINVAL;
+				return -1;
 			else
 				return chunk;
 		}
 
 		h = hex_to_dec(**buf);
 		if (h < 0)
-			return h;
+			return -1;
 
 		if (chunk > CHUNK_MASK >> 4)
-			return -EOVERFLOW;
+			return -1;
 
 		chunk = (chunk << 4) | h;
 		(*buf)++, (*buflen)--;
@@ -81,13 +81,13 @@ int count_chunks(const char *buf, size_t buflen)
 		if ((chunk = next_chunk(&buf, &buflen)) >= 0)
 			chunks++;
 		else
-			return (int)chunk;
+			return -1;
 	}
 	return chunks;
 }
 
 /*
- * Returns 0 or -EOVERFLOW or -EINVAL in case of error
+ * Returns 0 or -1 in case of error
  */
 int bitmask_parse_user(const char *buf, size_t buflen, BIT_ARRAY *bmp)
 {
@@ -96,14 +96,14 @@ int bitmask_parse_user(const char *buf, size_t buflen, BIT_ARRAY *bmp)
 
 	nchunks = count_chunks(buf, buflen);
 	if (nchunks < 0)
-		return nchunks;
+		return -1;
 
 	bit_array_clear_all(bmp);
 
 	while (nchunks) {
 		chunk = next_chunk(&buf, &buflen);
 		if (chunk < 0)
-			return chunk;
+			return -1;
 		nchunks--;
 		bit_array_set_word32(bmp, nchunks * HEXCHUNKSZ, (uint32_t)chunk);
 	}
